@@ -49,11 +49,7 @@
 
     <!-- Main App Container -->
     <div id="app-container">
-        <!-- Loading state -->
-        <div id="loading-spinner" class="fixed inset-0 flex items-center justify-center bg-gray-50 z-50">
-            <div class="text-xl font-semibold text-gray-600">Initializing Application and Authentication...</div>
-        </div>
-        <!-- Content will be rendered here -->
+        <!-- Content will be rendered here immediately by JS -->
     </div>
 
     <!-- Global Notification/Message Box -->
@@ -149,25 +145,26 @@
         
         // --- Core Application Logic (State Changes and Rerendering) ---
 
-        const renderApp = () => {
+        // Expose renderApp to the window scope so inline event handlers can call it.
+        window.renderApp = () => {
             renderLayout();
         };
 
         const setCurrentRole = (role) => {
             appState.currentRole = role;
             appState.currentView = 'Dashboard';
-            renderApp();
+            window.renderApp();
         };
 
         const setCurrentView = (viewId) => {
             appState.currentView = viewId;
-            renderApp();
+            window.renderApp();
         };
         
         const toggleSidebar = () => {
             appState.isSidebarOpen = !appState.isSidebarOpen;
             renderSidebar();
-            renderLayout();
+            window.renderApp();
         };
         
         const toggleOrderDetails = (orderId) => {
@@ -235,11 +232,18 @@
             const totalCost = orderDetails.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
             
             // Simple round-robin assignment for demonstration
-            const lastDistId = localStorage.getItem('lastDistId') || appState.distributors[appState.distributors.length - 1].id;
-            const lastIndex = appState.distributors.findIndex(d => d.id === lastDistId);
-            const nextIndex = (lastIndex + 1) % appState.distributors.length;
-            const assignedDistributor = appState.distributors[nextIndex]; 
-            localStorage.setItem('lastDistId', assignedDistributor.id);
+            const lastDistId = localStorage.getItem('lastDistId') || (appState.distributors.length > 0 ? appState.distributors[appState.distributors.length - 1].id : null);
+            let assignedDistributor = null;
+
+            if (lastDistId) {
+                const lastIndex = appState.distributors.findIndex(d => d.id === lastDistId);
+                const nextIndex = (lastIndex + 1) % appState.distributors.length;
+                assignedDistributor = appState.distributors[nextIndex]; 
+                localStorage.setItem('lastDistId', assignedDistributor.id);
+            } else {
+                assignedDistributor = appState.distributors[0];
+            }
+
 
             if (totalCost > assignedDistributor.currentCredit) {
                 notify(`Order failed: Total cost (${totalCost.toFixed(2)} AED) exceeds Distributor credit line of ${assignedDistributor.currentCredit.toFixed(2)} AED.`);
@@ -375,11 +379,10 @@
                 appState.distributors = distributorSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             }
 
-            // --- Order Seeding (75 + 12 = 87 Orders) --- <<-- UPDATED COUNT
+            // --- Order Seeding (75 + 12 = 87 Orders) --- 
             const ordersRef = collection(db, getPublicPath('orders'));
             const ordersSnapshot = await getDocs(query(ordersRef));
 
-            // Set TARGET_ORDERS to 87
             const TARGET_RANDOM_ORDERS = 75;
             const TARGET_CLIENT_ORDERS = 12;
 
@@ -523,13 +526,10 @@
             const appContainer = document.getElementById('app-container');
             if (!appContainer) return;
             
-            // Remove loading state
-            const loadingSpinner = document.getElementById('loading-spinner');
-            if(loadingSpinner) loadingSpinner.remove();
-
             const sidebarWidthClass = appState.isSidebarOpen ? 'ml-64' : 'ml-20';
             const mainContentClass = appState.isSidebarOpen ? 'main-content-open' : 'main-content-closed';
 
+            // Render the layout shell immediately
             appContainer.innerHTML = `
                 <!-- Sidebar -->
                 <div id="sidebar" class="fixed top-0 left-0 h-full bg-white transition-all duration-300 shadow-xl z-20 w-64"></div>
@@ -544,6 +544,7 @@
                 </main>
             `;
             
+            // Initial content render
             renderSidebar();
             renderHeader();
             renderContent();
@@ -880,8 +881,15 @@
         const renderGMGAdminDashboard = (container) => {
             const totalDistributors = appState.distributors.length;
             const totalSkus = appState.inventory.length;
-            const pendingOrders = appState.orders.filter(o => o.status === 'Pending').length;
             const totalCredit = appState.distributors.reduce((sum, d) => sum + d.maxCredit, 0);
+            const currentCredit = appState.distributors.reduce((sum, d) => sum + d.currentCredit, 0);
+            const totalInventoryValue = appState.inventory.reduce((sum, item) => sum + (item.price * item.stock), 0);
+            
+            const creditUtilization = totalCredit > 0 ? ((totalCredit - currentCredit) / totalCredit) * 100 : 0;
+            const pendingOrders = appState.orders.filter(o => o.status === 'Pending').length;
+            const fulfilledOrders = appState.orders.filter(o => o.status === 'Fulfilled').length;
+            const shippedOrders = appState.orders.filter(o => o.status === 'Shipped').length;
+            const cancelledOrders = appState.orders.filter(o => o.status === 'Cancelled').length;
 
             container.innerHTML = `
                 <div class="space-y-6">
@@ -890,9 +898,51 @@
                         ${renderCard("Total Distributors", totalDistributors, getIcon('<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-users"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>'), "bg-indigo-600")}
                         ${renderCard("Total SKUs Managed", totalSkus, getIcon('<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-package"><path d="m7.5 4.27 9 5.15"/><path d="m21 16.6V9a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 9v7.6"/><path d="M3 17a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4a2 2 0 0 0 1-1.73"/><path d="m12 22 0-10"/><path d="M15 9.47 12 11 9 9.47"/></svg>'), "bg-green-600")}
                         ${renderCard("Pending Orders", pendingOrders, getIcon('<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-clock"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>'), "bg-yellow-600")}
-                        ${renderCard("Total Credit Exposure", `${totalCredit.toLocaleString(undefined, { maximumFractionDigits: 0 })} AED`, getIcon('<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-dollar-sign"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>'), "bg-red-600")}
+                        ${renderCard("Total Inventory Value", `${totalInventoryValue.toLocaleString(undefined, { maximumFractionDigits: 0 })} AED`, getIcon('<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-dollar-sign"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>'), "bg-red-600")}
                     </div>
 
+                    <!-- Analytical Dashlets -->
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 pt-4">
+                        <!-- Credit Utilization Rate -->
+                        <div class="lg:col-span-1 bg-white p-6 rounded-xl shadow-lg border-t-4 border-indigo-500">
+                            <h3 class="text-xl font-semibold text-gray-800 mb-4">Credit Utilization Rate</h3>
+                            <div class="space-y-2">
+                                <p class="text-3xl font-bold text-indigo-700">${creditUtilization.toFixed(1)}%</p>
+                                <div class="w-full bg-gray-200 rounded-full h-4">
+                                    <div
+                                        class="h-4 rounded-full transition-all duration-500 ${creditUtilization > 75 ? 'bg-red-500' : creditUtilization > 50 ? 'bg-yellow-500' : 'bg-green-500'}"
+                                        style="width: ${creditUtilization}%"
+                                    ></div>
+                                </div>
+                                <p class="text-sm text-gray-500 pt-2">Total Credit Allocated: ${totalCredit.toLocaleString(undefined, { maximumFractionDigits: 0 })} AED</p>
+                                <p class="text-sm text-gray-500">Total Credit Available: ${currentCredit.toLocaleString(undefined, { maximumFractionDigits: 0 })} AED</p>
+                            </div>
+                        </div>
+
+                        <!-- Order Status Breakdown -->
+                        <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-lg border-t-4 border-yellow-500">
+                            <h3 class="text-xl font-semibold text-gray-800 mb-4">Global Order Status Breakdown</h3>
+                            <div class="grid grid-cols-4 gap-4 text-center">
+                                <div class="p-3 rounded-lg bg-yellow-50">
+                                    <p class="text-2xl font-bold text-yellow-800">${pendingOrders}</p>
+                                    <p class="text-sm text-yellow-600">Pending</p>
+                                </div>
+                                <div class="p-3 rounded-lg bg-green-50">
+                                    <p class="text-2xl font-bold text-green-800">${fulfilledOrders}</p>
+                                    <p class="text-sm text-green-600">Fulfilled</p>
+                                </div>
+                                <div class="p-3 rounded-lg bg-blue-50">
+                                    <p class="text-2xl font-bold text-blue-800">${shippedOrders}</p>
+                                    <p class="text-sm text-blue-600">Shipped</p>
+                                </div>
+                                <div class="p-3 rounded-lg bg-red-50">
+                                    <p class="text-2xl font-bold text-red-800">${cancelledOrders}</p>
+                                    <p class="text-sm text-red-600">Cancelled</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
                     <h2 class="text-2xl font-semibold text-gray-800 pt-4">Quick Links</h2>
                     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                         <button
@@ -1081,33 +1131,64 @@
             const shippedCount = clientOrders.filter(o => o.status === 'Shipped').length;
             const totalSpent = clientOrders.reduce((sum, o) => sum + o.totalCost, 0);
             const totalProducts = appState.inventory.length;
+            const totalOrders = clientOrders.length;
+            const aov = totalOrders > 0 ? (totalSpent / totalOrders) : 0;
+            
+            // Category Breakdown (Simple aggregation for prototype)
+            const categoryCounts = clientOrders.flatMap(o => o.items)
+                .reduce((acc, item) => {
+                    const skuItem = appState.inventory.find(i => i.sku === item.sku);
+                    const category = skuItem ? skuItem.category : 'Unknown';
+                    acc[category] = (acc[category] || 0) + item.quantity;
+                    return acc;
+                }, {});
+
+            const categoryHtml = Object.entries(categoryCounts)
+                .sort(([, a], [, b]) => b - a)
+                .map(([category, count]) => `
+                    <div class="flex justify-between text-gray-700">
+                        <span>${category}</span>
+                        <span class="font-semibold">${count} units</span>
+                    </div>
+                `).join('');
 
             container.innerHTML = `
                 <div class="space-y-6">
                     <h1 class="text-3xl font-extrabold text-indigo-800">Client Procurement Dashboard</h1>
                     <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                         ${renderCard("Total Spent YTD", `${totalSpent.toFixed(2)} AED`, getIcon('<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-dollar-sign"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>'), "bg-indigo-600")}
-                        ${renderCard("Products in Catalog", totalProducts, getIcon('<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-package"><path d="m7.5 4.27 9 5.15"/><path d="m21 16.6V9a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 9v7.6"/><path d="M3 17a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4a2 2 0 0 0 1-1.73"/><path d="m12 22 0-10"/><path d="M15 9.47 12 11 9 9.47"/></svg>'), "bg-green-600")}
+                        ${renderCard("Average Order Value", `${aov.toFixed(2)} AED`, getIcon('<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-wallet"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h12a2 2 0 0 1 0 4H5a2 2 0 0 0 0 4h12a2 2 0 0 0 2-2v-3"/><path d="M15 7h1v4h-1"/></svg>'), "bg-purple-600")}
                         ${renderCard("Orders Pending", pendingCount, getIcon('<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-clock"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>'), "bg-yellow-600")}
                         ${renderCard("Orders Shipped", shippedCount, getIcon('<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-check-circle"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 22 3-3"/><path d="m9 12 3 3 5-5"/></svg>'), "bg-blue-600")}
                     </div>
-
-                    <h2 class="text-2xl font-semibold text-gray-800 pt-4">Start Ordering</h2>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <button
-                            onclick="window.setCurrentView('ProductCatalog')"
-                            class="p-6 bg-white rounded-xl shadow-md hover:shadow-lg transition flex items-center justify-between border-b-4 border-indigo-500"
-                        >
-                            <span class="text-xl font-medium text-gray-700">Browse Catalog & Place Order</span>
-                            <div class="text-indigo-500">${getIcon(VIEWS.CLIENT[1].icon)}</div>
-                        </button>
-                        <button
-                            onclick="window.setCurrentView('MyOrders')"
-                            class="p-6 bg-white rounded-xl shadow-md hover:shadow-lg transition flex items-center justify-between border-b-4 border-green-500"
-                        >
-                            <span class="text-xl font-medium text-gray-700">Track My Orders</span>
-                            <div class="text-green-500">${getIcon(VIEWS.CLIENT[2].icon)}</div>
-                        </button>
+                    
+                    <!-- Analytical Dashlets -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-4">
+                        <!-- Product Category Breakdown -->
+                        <div class="bg-white p-6 rounded-xl shadow-lg border-t-4 border-green-500">
+                            <h3 class="text-xl font-semibold text-gray-800 mb-4">Product Category Demand (Units Ordered)</h3>
+                            <div class="space-y-2">
+                                ${categoryHtml || '<p class="text-gray-500">No orders placed to generate breakdown.</p>'}
+                            </div>
+                        </div>
+                        
+                        <!-- Quick Links -->
+                        <div class="space-y-4">
+                            <button
+                                onclick="window.setCurrentView('ProductCatalog')"
+                                class="w-full p-6 bg-white rounded-xl shadow-md hover:shadow-lg transition flex items-center justify-between border-b-4 border-indigo-500"
+                            >
+                                <span class="text-xl font-medium text-gray-700">Browse Catalog & Place Order</span>
+                                <div class="text-indigo-500">${getIcon(VIEWS.CLIENT[1].icon)}</div>
+                            </button>
+                            <button
+                                onclick="window.setCurrentView('MyOrders')"
+                                class="w-full p-6 bg-white rounded-xl shadow-md hover:shadow-lg transition flex items-center justify-between border-b-4 border-green-500"
+                            >
+                                <span class="text-xl font-medium text-gray-700">Track My Orders</span>
+                                <div class="text-green-500">${getIcon(VIEWS.CLIENT[2].icon)}</div>
+                            </button>
+                        </div>
                     </div>
                 </div>
             `;
@@ -1246,33 +1327,60 @@
             const pendingCount = assignedOrders.filter(o => o.status === 'Pending').length;
             const shippedCount = assignedOrders.filter(o => o.status === 'Shipped').length;
             const fulfilledCount = assignedOrders.filter(o => o.status === 'Fulfilled').length;
+            
+            const totalAssignedOrders = assignedOrders.length;
+            const totalRevenueProcessed = assignedOrders
+                .filter(o => o.status === 'Fulfilled' || o.status === 'Shipped')
+                .reduce((sum, o) => sum + o.totalCost, 0);
+            const fulfillmentRate = totalAssignedOrders > 0 
+                ? ((fulfilledCount + shippedCount) / totalAssignedOrders) * 100 
+                : 0;
 
             container.innerHTML = `
                 <div class="space-y-6">
                     <h1 class="text-3xl font-extrabold text-indigo-800">Fulfillment Dashboard: ${mockDistributor.name}</h1>
                     <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                        ${renderCard("Available Credit", `${mockDistributor.currentCredit.toFixed(2)} AED`, getIcon('<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-dollar-sign"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>'), "bg-green-600")}
                         ${renderCard("Orders to Fulfill", pendingCount, getIcon('<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-clock"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>'), "bg-yellow-600")}
-                        ${renderCard("Ready to Ship", fulfilledCount, getIcon('<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-check-circle"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 22 3-3"/><path d="m9 12 3 3 5-5"/></svg>'), "bg-blue-600")}
                         ${renderCard("Completed Shipments", shippedCount, getIcon('<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-truck"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M19 18H9"/><path d="m14 9 4 4 4-4"/><path d="M5 18v2"/><path d="M19 18v2"/><circle cx="17" cy="18" r="2"/></svg>'), "bg-indigo-600")}
+                        ${renderCard("Available Credit", `${mockDistributor.currentCredit.toFixed(2)} AED`, getIcon('<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-dollar-sign"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>'), "bg-green-600")}
+                        ${renderCard("Total Revenue Processed", `${totalRevenueProcessed.toLocaleString(undefined, { maximumFractionDigits: 0 })} AED`, getIcon('<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trending-up"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>'), "bg-blue-600")}
                     </div>
 
-                    <h2 class="text-2xl font-semibold text-gray-800 pt-4">Fulfillment Queue</h2>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <button
-                            onclick="window.setCurrentView('Fulfillment')"
-                            class="p-6 bg-white rounded-xl shadow-md hover:shadow-lg transition flex items-center justify-between border-b-4 border-yellow-500"
-                        >
-                            <span class="text-xl font-medium text-gray-700">Process Pending Orders</span>
-                            <div class="text-yellow-500">${getIcon(VIEWS.DISTRIBUTOR[1].icon)}</div>
-                        </button>
-                        <button
-                            onclick="window.setCurrentView('CreditStatus')"
-                            class="p-6 bg-white rounded-xl shadow-md hover:shadow-lg transition flex items-center justify-between border-b-4 border-green-500"
-                        >
-                            <span class="text-xl font-medium text-gray-700">View Credit Line Details</span>
-                            <div class="text-green-500">${getIcon(VIEWS.DISTRIBUTOR[2].icon)}</div>
-                        </button>
+                    <!-- Analytical Dashlets -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-4">
+                        <!-- Fulfillment Rate -->
+                        <div class="bg-white p-6 rounded-xl shadow-lg border-t-4 border-yellow-500">
+                            <h3 class="text-xl font-semibold text-gray-800 mb-4">Overall Fulfillment Rate</h3>
+                            <div class="space-y-2">
+                                <p class="text-3xl font-bold text-yellow-700">${fulfillmentRate.toFixed(1)}%</p>
+                                <div class="w-full bg-gray-200 rounded-full h-4">
+                                    <div
+                                        class="h-4 rounded-full transition-all duration-500 ${fulfillmentRate < 70 ? 'bg-red-500' : fulfillmentRate < 90 ? 'bg-yellow-500' : 'bg-green-500'}"
+                                        style="width: ${fulfillmentRate}%"
+                                    ></div>
+                                </div>
+                                <p class="text-sm text-gray-500 pt-2">Total Assigned Orders: ${totalAssignedOrders}</p>
+                                <p class="text-sm text-gray-500">Fulfilled/Shipped Orders: ${fulfilledCount + shippedCount}</p>
+                            </div>
+                        </div>
+
+                        <!-- Quick Links -->
+                        <div class="space-y-4">
+                            <button
+                                onclick="window.setCurrentView('Fulfillment')"
+                                class="w-full p-6 bg-white rounded-xl shadow-md hover:shadow-lg transition flex items-center justify-between border-b-4 border-yellow-500"
+                            >
+                                <span class="text-xl font-medium text-gray-700">Process Pending Orders</span>
+                                <div class="text-yellow-500">${getIcon(VIEWS.DISTRIBUTOR[1].icon)}</div>
+                            </button>
+                            <button
+                                onclick="window.setCurrentView('CreditStatus')"
+                                class="w-full p-6 bg-white rounded-xl shadow-md hover:shadow-lg transition flex items-center justify-between border-b-4 border-green-500"
+                            >
+                                <span class="text-xl font-medium text-gray-700">View Credit Line Details</span>
+                                <div class="text-green-500">${getIcon(VIEWS.DISTRIBUTOR[2].icon)}</div>
+                            </button>
+                        </div>
                     </div>
                 </div>
             `;
@@ -1281,6 +1389,9 @@
         // --- Initialization and Listeners ---
 
         const initApp = async () => {
+            // Render layout immediately to avoid the loading screen
+            renderLayout(); 
+
             if (Object.keys(firebaseConfig).length === 0) {
                 console.error("Firebase config is missing. Cannot initialize app.");
                 return;
@@ -1304,16 +1415,24 @@
                 };
                 signIn();
 
-                onAuthStateChanged(auth, (user) => {
+                onAuthStateChanged(auth, async (user) => {
                     if (user) {
                         userId = user.uid;
                         isAuthReady = true;
+                        
+                        try {
+                            await initializeSKUs();
+                        } catch (e) {
+                             console.error("Error during SKU/data initialization:", e);
+                        }
+                        
                         setupDataListeners();
-                        initializeSKUs();
-                        renderLayout();
+                        // Rerender after data is available
+                        renderLayout(); 
                     } else {
                         userId = null;
                         isAuthReady = true;
+                        renderLayout(); // Still render UI if anonymous sign-in failed, but data might be empty
                     }
                 });
             } catch (e) {
@@ -1354,7 +1473,7 @@
         window.toggleSidebar = toggleSidebar;
         window.toggleOrderDetails = toggleOrderDetails;
         window.renderLayout = renderLayout;
-        window.renderApp = renderApp;
+        // window.renderApp is defined above
         window.handleInventoryChange = handleInventoryChange;
         window.saveInventoryUpdate = saveInventoryUpdate;
         window.openDistributorModal = openDistributorModal;
