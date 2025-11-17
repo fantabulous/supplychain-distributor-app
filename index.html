@@ -479,20 +479,22 @@
                 `;
             }).join('');
             
+            const menuIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-menu"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>';
+
             const headerHtml = `
                 <div class="p-4 border-b border-indigo-100 flex items-center justify-between h-16">
                     <h1 class="text-xl font-extrabold text-indigo-700 transition-opacity duration-150 ${isCollapsed ? 'opacity-0 hidden' : 'opacity-100'}">
                         GMG Hub
                     </h1>
                     <button onclick="window.toggleSidebar()" class="p-2 rounded-full text-indigo-600 hover:bg-indigo-50 transition">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-menu"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
+                        ${menuIcon}
                     </button>
                 </div>
             `;
             
             const footerHtml = `
                 <div class="absolute bottom-4 left-0 w-full p-4">
-                    <p class="text-xs text-gray-400 truncate ${isCollapsed ? 'hidden' : 'ml-0'}">User ID: ${userId}</p>
+                    <p class="text-xs text-gray-400 truncate ${isCollapsed ? 'hidden' : 'ml-0'}">User ID: ${userId || 'Initializing...'}</p>
                 </div>
             `;
 
@@ -522,14 +524,15 @@
             `;
         };
 
-        const renderLayout = () => {
+        // Expose renderLayout to the window scope
+        window.renderLayout = () => {
             const appContainer = document.getElementById('app-container');
             if (!appContainer) return;
             
             const sidebarWidthClass = appState.isSidebarOpen ? 'ml-64' : 'ml-20';
             const mainContentClass = appState.isSidebarOpen ? 'main-content-open' : 'main-content-closed';
 
-            // Render the layout shell immediately
+            // Render the layout shell
             appContainer.innerHTML = `
                 <!-- Sidebar -->
                 <div id="sidebar" class="fixed top-0 left-0 h-full bg-white transition-all duration-300 shadow-xl z-20 w-64"></div>
@@ -890,15 +893,22 @@
             const fulfilledOrders = appState.orders.filter(o => o.status === 'Fulfilled').length;
             const shippedOrders = appState.orders.filter(o => o.status === 'Shipped').length;
             const cancelledOrders = appState.orders.filter(o => o.status === 'Cancelled').length;
+            
+            const usersIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-users"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>';
+            const packageIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-package"><path d="m7.5 4.27 9 5.15"/><path d="m21 16.6V9a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 9v7.6"/><path d="M3 17a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4a2 2 0 0 0 1-1.73"/><path d="m12 22 0-10"/><path d="M15 9.47 12 11 9 9.47"/></svg>';
+            const clockIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-clock"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>';
+            const dollarSignIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-dollar-sign"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>';
+            const shoppingCartIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-shopping-cart"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.72a2 2 0 0 0 2-1.58L23 6H6"/></svg>';
+
 
             container.innerHTML = `
                 <div class="space-y-6">
                     <h1 class="text-3xl font-extrabold text-indigo-800">GMG Global Operations Dashboard</h1>
                     <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                        ${renderCard("Total Distributors", totalDistributors, getIcon('<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-users"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>'), "bg-indigo-600")}
-                        ${renderCard("Total SKUs Managed", totalSkus, getIcon('<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-package"><path d="m7.5 4.27 9 5.15"/><path d="m21 16.6V9a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 9v7.6"/><path d="M3 17a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4a2 2 0 0 0 1-1.73"/><path d="m12 22 0-10"/><path d="M15 9.47 12 11 9 9.47"/></svg>'), "bg-green-600")}
-                        ${renderCard("Pending Orders", pendingOrders, getIcon('<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-clock"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>'), "bg-yellow-600")}
-                        ${renderCard("Total Inventory Value", `${totalInventoryValue.toLocaleString(undefined, { maximumFractionDigits: 0 })} AED`, getIcon('<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-dollar-sign"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>'), "bg-red-600")}
+                        ${renderCard("Total Distributors", totalDistributors, usersIcon, "bg-indigo-600")}
+                        ${renderCard("Total SKUs Managed", totalSkus, packageIcon, "bg-green-600")}
+                        ${renderCard("Pending Orders", pendingOrders, clockIcon, "bg-yellow-600")}
+                        ${renderCard("Total Inventory Value", `${totalInventoryValue.toLocaleString(undefined, { maximumFractionDigits: 0 })} AED`, dollarSignIcon, "bg-red-600")}
                     </div>
 
                     <!-- Analytical Dashlets -->
@@ -950,21 +960,21 @@
                             class="p-4 bg-white rounded-xl shadow-md hover:shadow-lg transition flex items-center justify-between border-l-4 border-indigo-500"
                         >
                             <span class="font-medium text-gray-700">Manage Distributors</span>
-                            <div class="text-indigo-500">${getIcon(VIEWS.GMG_ADMIN[1].icon)}</div>
+                            <div class="text-indigo-500">${usersIcon}</div>
                         </button>
                         <button
                             onclick="window.setCurrentView('InventoryManagement')"
                             class="p-4 bg-white rounded-xl shadow-md hover:shadow-lg transition flex items-center justify-between border-l-4 border-green-500"
                         >
                             <span class="font-medium text-gray-700">Update Master Inventory</span>
-                            <div class="text-green-500">${getIcon(VIEWS.GMG_ADMIN[2].icon)}</div>
+                            <div class="text-green-500">${packageIcon}</div>
                         </button>
                         <button
                             onclick="window.setCurrentView('OrderOverview')"
                             class="p-4 bg-white rounded-xl shadow-md hover:shadow-lg transition flex items-center justify-between border-l-4 border-yellow-500"
                         >
                             <span class="font-medium text-gray-700">Review All Orders</span>
-                            <div class="text-yellow-500">${getIcon(VIEWS.GMG_ADMIN[3].icon)}</div>
+                            <div class="text-yellow-500">${shoppingCartIcon}</div>
                         </button>
                     </div>
                 </div>
@@ -987,7 +997,9 @@
                     <p class="font-bold text-gray-900">(${(item.price * item.quantity).toFixed(2)} AED)</p>
                 </div>
             `).join('');
-
+            
+            const zapIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-zap"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>';
+            
             const productCards = appState.inventory.map(item => `
                 <div class="p-4 border rounded-lg shadow-sm hover:shadow-md transition">
                     <p class="text-lg font-bold text-gray-900">${item.name}</p>
@@ -1006,7 +1018,7 @@
                             class="w-16 p-1 border rounded-md text-center"
                         />
                         <button
-                            onclick="window.updateCart('${item.sku}', (parseInt(document.querySelector('#product-catalog input[value*="${item.sku}"]').value) || 0) + 1)"
+                            onclick="window.updateCart('${item.sku}', (parseInt(document.querySelector('#product-catalog input[id*="sku-input-${item.sku}"]').value) || 0) + 1)"
                             ${item.stock <= (appState.cart[item.sku] || 0) ? 'disabled' : ''}
                             class="px-3 py-1 bg-indigo-500 text-white rounded-md hover:bg-indigo-600 disabled:bg-gray-400 transition"
                         >
@@ -1019,7 +1031,7 @@
             container.innerHTML = `
                 <div class="space-y-6" id="product-catalog">
                     <div class="bg-indigo-50 p-6 rounded-xl shadow-lg">
-                        <h2 class="text-2xl font-semibold text-indigo-800 mb-4 flex items-center">${getIcon('<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-zap"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>')} <span class="ml-2">Current Order Cart</span></h2>
+                        <h2 class="text-2xl font-semibold text-indigo-800 mb-4 flex items-center">${getIcon(zapIcon)} <span class="ml-2">Current Order Cart</span></h2>
                         ${cartItems.length === 0 ? `
                             <p class="text-indigo-600">Your cart is empty. Add some products!</p>
                         ` : `
@@ -1088,6 +1100,9 @@
                     const chevron = isExpanded 
                         ? '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-up w-5 h-5 text-indigo-600"><path d="m18 15-6-6-6 6"/></svg>'
                         : '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-down w-5 h-5 text-gray-500"><path d="m6 9 6 6 6-6"/></svg>';
+                    
+                    const truckIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-truck"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M19 18H9"/><path d="m14 9 4 4 4-4"/><path d="M5 18v2"/><path d="M19 18v2"/><circle cx="17" cy="18" r="2"/></svg>';
+
 
                     return `
                         <div class="border rounded-lg shadow-sm">
@@ -1151,44 +1166,65 @@
                         <span class="font-semibold">${count} units</span>
                     </div>
                 `).join('');
+                
+            const dollarSignIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-dollar-sign"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>';
+            const walletIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-wallet"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h12a2 2 0 0 1 0 4H5a2 2 0 0 0 0 4h12a2 2 0 0 0 2-2v-3"/><path d="M15 7h1v4h-1"/></svg>';
+            const clockIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-clock"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>';
+            const checkCircleIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-check-circle"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 22 3-3"/><path d="m9 12 3 3 5-5"/></svg>';
+            const packageIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-package"><path d="m7.5 4.27 9 5.15"/><path d="m21 16.6V9a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 9v7.6"/><path d="M3 17a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4a2 2 0 0 0 1-1.73"/><path d="m12 22 0-10"/><path d="M15 9.47 12 11 9 9.47"/></svg>';
+            const shoppingCartIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-shopping-cart"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.72a2 2 0 0 0 2-1.58L23 6H6"/></svg>';
+            const truckIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-truck"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M19 18H9"/><path d="m14 9 4 4 4-4"/><path d="M5 18v2"/><path d="M19 18v2"/><circle cx="17" cy="18" r="2"/></svg>';
+
 
             container.innerHTML = `
                 <div class="space-y-6">
                     <h1 class="text-3xl font-extrabold text-indigo-800">Client Procurement Dashboard</h1>
                     <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                        ${renderCard("Total Spent YTD", `${totalSpent.toFixed(2)} AED`, getIcon('<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-dollar-sign"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>'), "bg-indigo-600")}
-                        ${renderCard("Average Order Value", `${aov.toFixed(2)} AED`, getIcon('<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-wallet"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h12a2 2 0 0 1 0 4H5a2 2 0 0 0 0 4h12a2 2 0 0 0 2-2v-3"/><path d="M15 7h1v4h-1"/></svg>'), "bg-purple-600")}
-                        ${renderCard("Orders Pending", pendingCount, getIcon('<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-clock"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>'), "bg-yellow-600")}
-                        ${renderCard("Orders Shipped", shippedCount, getIcon('<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-check-circle"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 22 3-3"/><path d="m9 12 3 3 5-5"/></svg>'), "bg-blue-600")}
+                        ${renderCard("Total Spent YTD", `${totalSpent.toFixed(2)} AED`, dollarSignIcon, "bg-indigo-600")}
+                        ${renderCard("Average Order Value", `${aov.toFixed(2)} AED`, walletIcon, "bg-purple-600")}
+                        ${renderCard("Orders Pending", pendingCount, clockIcon, "bg-yellow-600")}
+                        ${renderCard("Orders Shipped", shippedCount, checkCircleIcon, "bg-blue-600")}
                     </div>
-                    
+
                     <!-- Analytical Dashlets -->
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-4">
-                        <!-- Product Category Breakdown -->
+                        <!-- Product Catalog Size -->
                         <div class="bg-white p-6 rounded-xl shadow-lg border-t-4 border-green-500">
+                            <h3 class="text-xl font-semibold text-gray-800 mb-4">Product Catalog Size</h3>
+                            <div class="flex items-center space-x-4">
+                                <div class="text-green-600 w-12 h-12">${packageIcon}</div>
+                                <div>
+                                    <p class="text-3xl font-bold text-green-700">${totalProducts}</p>
+                                    <p class="text-sm text-gray-500">Total SKUs available for purchase.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Product Category Breakdown -->
+                        <div class="bg-white p-6 rounded-xl shadow-lg border-t-4 border-yellow-500">
                             <h3 class="text-xl font-semibold text-gray-800 mb-4">Product Category Demand (Units Ordered)</h3>
                             <div class="space-y-2">
                                 ${categoryHtml || '<p class="text-gray-500">No orders placed to generate breakdown.</p>'}
                             </div>
                         </div>
-                        
-                        <!-- Quick Links -->
-                        <div class="space-y-4">
-                            <button
-                                onclick="window.setCurrentView('ProductCatalog')"
-                                class="w-full p-6 bg-white rounded-xl shadow-md hover:shadow-lg transition flex items-center justify-between border-b-4 border-indigo-500"
-                            >
-                                <span class="text-xl font-medium text-gray-700">Browse Catalog & Place Order</span>
-                                <div class="text-indigo-500">${getIcon(VIEWS.CLIENT[1].icon)}</div>
-                            </button>
-                            <button
-                                onclick="window.setCurrentView('MyOrders')"
-                                class="w-full p-6 bg-white rounded-xl shadow-md hover:shadow-lg transition flex items-center justify-between border-b-4 border-green-500"
-                            >
-                                <span class="text-xl font-medium text-gray-700">Track My Orders</span>
-                                <div class="text-green-500">${getIcon(VIEWS.CLIENT[2].icon)}</div>
-                            </button>
-                        </div>
+                    </div>
+                    
+                    <h2 class="text-2xl font-semibold text-gray-800 pt-4">Quick Links</h2>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <button
+                            onclick="window.setCurrentView('ProductCatalog')"
+                            class="p-6 bg-white rounded-xl shadow-md hover:shadow-lg transition flex items-center justify-between border-b-4 border-indigo-500"
+                        >
+                            <span class="text-xl font-medium text-gray-700">Browse Catalog & Place Order</span>
+                            <div class="text-indigo-500">${getIcon(VIEWS.CLIENT[1].icon)}</div>
+                        </button>
+                        <button
+                            onclick="window.setCurrentView('MyOrders')"
+                            class="p-6 bg-white rounded-xl shadow-md hover:shadow-lg transition flex items-center justify-between border-b-4 border-green-500"
+                        >
+                            <span class="text-xl font-medium text-gray-700">Track My Orders</span>
+                            <div class="text-green-500">${getIcon(VIEWS.CLIENT[2].icon)}</div>
+                        </button>
                     </div>
                 </div>
             `;
@@ -1289,14 +1325,16 @@
             const usagePercentage = (usedCredit / mockDistributor.maxCredit) * 100;
             const percentageColor = usagePercentage > 80 ? 'bg-red-500' : usagePercentage > 50 ? 'bg-yellow-500' : 'bg-green-500';
 
+            const dollarSignIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-dollar-sign"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>';
+
             container.innerHTML = `
                 <div class="bg-white p-6 rounded-xl shadow-lg space-y-6">
                     <h2 class="text-2xl font-semibold text-gray-800">Credit Line Overview for ${mockDistributor.name}</h2>
 
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        ${renderCard("Maximum Credit Limit", `${mockDistributor.maxCredit.toFixed(2)} AED`, getIcon('<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-dollar-sign"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>'), "bg-indigo-600")}
-                        ${renderCard("Available Credit", `${mockDistributor.currentCredit.toFixed(2)} AED`, getIcon('<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-dollar-sign"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>'), mockDistributor.currentCredit < mockDistributor.maxCredit * 0.2 ? 'bg-red-600' : 'bg-green-600')}
-                        ${renderCard("Credit Used", `${usedCredit.toFixed(2)} AED`, getIcon('<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-dollar-sign"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>'), "bg-yellow-600")}
+                        ${renderCard("Maximum Credit Limit", `${mockDistributor.maxCredit.toFixed(2)} AED`, dollarSignIcon, "bg-indigo-600")}
+                        ${renderCard("Available Credit", `${mockDistributor.currentCredit.toFixed(2)} AED`, dollarSignIcon, mockDistributor.currentCredit < mockDistributor.maxCredit * 0.2 ? 'bg-red-600' : 'bg-green-600')}
+                        ${renderCard("Credit Used", `${usedCredit.toFixed(2)} AED`, dollarSignIcon, "bg-yellow-600")}
                     </div>
 
                     <div class="space-y-2 pt-4">
@@ -1335,15 +1373,22 @@
             const fulfillmentRate = totalAssignedOrders > 0 
                 ? ((fulfilledCount + shippedCount) / totalAssignedOrders) * 100 
                 : 0;
+            
+            const dollarSignIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-dollar-sign"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>';
+            const clockIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-clock"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>';
+            const checkCircleIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-check-circle"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 22 3-3"/><path d="m9 12 3 3 5-5"/></svg>';
+            const truckIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-truck"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M19 18H9"/><path d="m14 9 4 4 4-4"/><path d="M5 18v2"/><path d="M19 18v2"/><circle cx="17" cy="18" r="2"/></svg>';
+            const trendingUpIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trending-up"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>';
+
 
             container.innerHTML = `
                 <div class="space-y-6">
                     <h1 class="text-3xl font-extrabold text-indigo-800">Fulfillment Dashboard: ${mockDistributor.name}</h1>
                     <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                        ${renderCard("Orders to Fulfill", pendingCount, getIcon('<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-clock"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>'), "bg-yellow-600")}
-                        ${renderCard("Completed Shipments", shippedCount, getIcon('<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-truck"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M19 18H9"/><path d="m14 9 4 4 4-4"/><path d="M5 18v2"/><path d="M19 18v2"/><circle cx="17" cy="18" r="2"/></svg>'), "bg-indigo-600")}
-                        ${renderCard("Available Credit", `${mockDistributor.currentCredit.toFixed(2)} AED`, getIcon('<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-dollar-sign"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>'), "bg-green-600")}
-                        ${renderCard("Total Revenue Processed", `${totalRevenueProcessed.toLocaleString(undefined, { maximumFractionDigits: 0 })} AED`, getIcon('<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trending-up"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>'), "bg-blue-600")}
+                        ${renderCard("Orders to Fulfill", pendingCount, clockIcon, "bg-yellow-600")}
+                        ${renderCard("Completed Shipments", shippedCount, truckIcon, "bg-indigo-600")}
+                        ${renderCard("Available Credit", `${mockDistributor.currentCredit.toFixed(2)} AED`, dollarSignIcon, "bg-green-600")}
+                        ${renderCard("Total Revenue Processed", `${totalRevenueProcessed.toLocaleString(undefined, { maximumFractionDigits: 0 })} AED`, trendingUpIcon, "bg-blue-600")}
                     </div>
 
                     <!-- Analytical Dashlets -->
@@ -1389,7 +1434,7 @@
         // --- Initialization and Listeners ---
 
         const initApp = async () => {
-            // Render layout immediately to avoid the loading screen
+            // 1. Render layout immediately to avoid the loading screen
             renderLayout(); 
 
             if (Object.keys(firebaseConfig).length === 0) {
@@ -1427,7 +1472,7 @@
                         }
                         
                         setupDataListeners();
-                        // Rerender after data is available
+                        // 2. Rerender after data is available
                         renderLayout(); 
                     } else {
                         userId = null;
