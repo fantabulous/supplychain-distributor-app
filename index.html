@@ -375,21 +375,27 @@
                 appState.distributors = distributorSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             }
 
-            // --- Order Seeding (75 Orders) --- <<-- UPDATED COUNT
+            // --- Order Seeding (75 + 12 = 87 Orders) --- <<-- UPDATED COUNT
             const ordersRef = collection(db, getPublicPath('orders'));
             const ordersSnapshot = await getDocs(query(ordersRef));
 
-            // Set TARGET_ORDERS to 75
-            const TARGET_ORDERS = 75;
+            // Set TARGET_ORDERS to 87
+            const TARGET_RANDOM_ORDERS = 75;
+            const TARGET_CLIENT_ORDERS = 12;
 
             if (ordersSnapshot.empty && appState.inventory.length > 0 && appState.distributors.length > 0) {
                 const mockOrders = [];
                 const orderStatuses = ['Pending', 'Fulfilled', 'Shipped'];
                 
-                for (let i = 1; i <= TARGET_ORDERS; i++) {
+                const inventoryItems = appState.inventory;
+                const distributorItems = appState.distributors;
+                
+                const createRandomOrder = (i, clientIdOverride = null) => {
                     const status = orderStatuses[i % 3];
-                    const distIndex = i % appState.distributors.length;
-                    const assignedDistributor = appState.distributors[distIndex];
+                    const distIndex = i % distributorItems.length;
+                    const assignedDistributor = distributorItems[distIndex];
+                    const clientId = clientIdOverride || `CLIENT-${100 + (i % 5)}`;
+                    const clientName = clientIdOverride ? `Client Buyer (You)` : `Client Buyer ${100 + (i % 5)}`;
 
                     // Create 2 to 4 random line items
                     const numItems = Math.floor(Math.random() * 3) + 2;
@@ -397,8 +403,8 @@
                     let totalCost = 0;
                     
                     for (let j = 0; j < numItems; j++) {
-                        const itemIndex = (i + j) % appState.inventory.length;
-                        const item = appState.inventory[itemIndex];
+                        const itemIndex = (i + j) % inventoryItems.length;
+                        const item = inventoryItems[itemIndex];
                         const quantity = Math.floor(Math.random() * 10) + 1;
                         
                         items.push({ 
@@ -410,22 +416,33 @@
                         totalCost += item.price * quantity;
                     }
 
-                    mockOrders.push({
-                        clientId: `CLIENT-${100 + (i % 5)}`,
-                        clientName: `Client Buyer ${100 + (i % 5)}`,
+                    return {
+                        clientId: clientId,
+                        clientName: clientName,
                         distributorId: assignedDistributor.id,
                         distributorName: assignedDistributor.name,
                         totalCost: parseFloat(totalCost.toFixed(2)),
                         items: items,
                         status: status,
                         createdAt: new Date(Date.now() - (i * 3600000)).toISOString(),
-                    });
+                    };
+                };
+
+                // 1. Generate TARGET_RANDOM_ORDERS (75)
+                for (let i = 1; i <= TARGET_RANDOM_ORDERS; i++) {
+                    mockOrders.push(createRandomOrder(i));
+                }
+                
+                // 2. Generate TARGET_CLIENT_ORDERS (12) explicitly for the current user
+                for (let i = 1; i <= TARGET_CLIENT_ORDERS; i++) {
+                    // Start the index higher to ensure different mock orders than the initial 75
+                    mockOrders.push(createRandomOrder(TARGET_RANDOM_ORDERS + i, userId)); 
                 }
 
                 for (const order of mockOrders) {
                     await addDoc(ordersRef, order);
                 }
-                notify(`Initial ${TARGET_ORDERS} Orders seeded.`);
+                notify(`Initial ${TARGET_RANDOM_ORDERS + TARGET_CLIENT_ORDERS} Orders seeded (including ${TARGET_CLIENT_ORDERS} for the current client).`);
             }
         };
 
