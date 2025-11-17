@@ -375,15 +375,18 @@
                 appState.distributors = distributorSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             }
 
-            // --- Order Seeding (50 Orders) ---
+            // --- Order Seeding (75 Orders) --- <<-- UPDATED COUNT
             const ordersRef = collection(db, getPublicPath('orders'));
             const ordersSnapshot = await getDocs(query(ordersRef));
+
+            // Set TARGET_ORDERS to 75
+            const TARGET_ORDERS = 75;
 
             if (ordersSnapshot.empty && appState.inventory.length > 0 && appState.distributors.length > 0) {
                 const mockOrders = [];
                 const orderStatuses = ['Pending', 'Fulfilled', 'Shipped'];
                 
-                for (let i = 1; i <= 50; i++) {
+                for (let i = 1; i <= TARGET_ORDERS; i++) {
                     const status = orderStatuses[i % 3];
                     const distIndex = i % appState.distributors.length;
                     const assignedDistributor = appState.distributors[distIndex];
@@ -422,7 +425,7 @@
                 for (const order of mockOrders) {
                     await addDoc(ordersRef, order);
                 }
-                notify("Initial 50 Orders seeded.");
+                notify(`Initial ${TARGET_ORDERS} Orders seeded.`);
             }
         };
 
@@ -1335,6 +1338,13 @@
         window.toggleOrderDetails = toggleOrderDetails;
         window.renderLayout = renderLayout;
         window.renderApp = renderApp;
+        window.handleInventoryChange = handleInventoryChange;
+        window.saveInventoryUpdate = saveInventoryUpdate;
+        window.openDistributorModal = openDistributorModal;
+        window.closeDistributorModal = closeDistributorModal;
+        window.updateCart = updateCart;
+        window.handlePlaceOrder = handlePlaceOrder;
+        window.handleFulfillOrder = handleFulfillOrder;
 
         // Initialize the app when the module loads
         initApp();
