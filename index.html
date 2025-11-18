@@ -64,7 +64,7 @@
                     <span id="cart-count" class="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-red-100 transform translate-x-1/2 -translate-y-1/2 bg-red-600 rounded-full">0</span>
                 </button>
                 <div id="user-info" class="text-sm font-medium text-gray-700">
-                    User ID: <span id="user-id-display" class="font-mono text-xs bg-gray-100 px-2 py-1 rounded-md">...</span>
+                    Distributor ID: <span id="user-id-display" class="font-mono text-xs bg-gray-100 px-2 py-1 rounded-md">GMG-DIST-001</span>
                 </div>
                 <!-- Mobile Navigation Toggle -->
                 <button id="mobile-nav-toggle" class="lg:hidden p-2 rounded-full hover:bg-gray-100 transition">
@@ -349,23 +349,46 @@
         </div>
     </div>
 
-    <!-- Firebase SDKs -->
+    <!-- Application Logic (No Firebase) -->
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, onSnapshot, collection, query, addDoc, serverTimestamp, getDocs, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-        // Global variables provided by the environment
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-
-        let app, db, auth, userId = 'loading';
-        window.cart = {}; // Global cart object
-        window.products = []; // Global product list
-        window.distributorProfile = null; // Global profile
+        // --- GLOBAL STATE ---
+        const MOCK_USER_ID = 'GMG-DIST-001';
         
+        window.cart = {}; // Global cart object
+        
+        // Initial Mock Data Setup (Used instead of loading from Firebase)
+        const defaultImageUrl = "https://placehold.co/100x100/34D399/FFFFFF/png?text=GMG+Meat";
+        
+        window.products = [
+            { id: 'prod1', sku: 'BEEF-STEAK-RBY-10KG', name: 'Premium Beef Ribeye Steak (Frozen)', brand: 'GMG Select', type: 'Beef', cut: 'Steak', unit: 'kg', unitPrice: 850.00, inventory: 50, imageUrl: defaultImageUrl, rating: 4.8, description: "Highly marbled, tender Ribeye steak, individually vacuum-sealed and flash-frozen to lock in flavor and freshness. Ideal for high-end restaurants and large catering events." },
+            { id: 'prod2', sku: 'LAMB-LOIN-CHLD-5KG', name: 'Chilled Australian Lamb Loin', brand: 'Down Under', type: 'Lamb', cut: 'Loin', unit: 'kg', unitPrice: 520.00, inventory: 80, imageUrl: defaultImageUrl, rating: 4.5, description: "Prime grade, chilled lamb loin sourced from certified Australian farms. Perfect for carving or portioning into individual chops. Delivered fresh, never frozen." },
+            { id: 'prod3', sku: 'CHICKEN-GROUND-1KG', name: 'Bulk Ground Chicken Breast (Chilled)', brand: 'PoultryPro', type: 'Chicken', cut: 'Ground', unit: 'kg', unitPrice: 85.00, inventory: 120, imageUrl: defaultImageUrl, rating: 4.2, description: "Lean ground chicken breast, suitable for health-conscious menus and mass preparation. Low fat content and consistently textured for uniform cooking." },
+            { id: 'prod4', sku: 'BEEF-TEND-SLCT-1KG', name: 'Wagyu Beef Tenderloin A5', brand: 'Kobe Reserve', type: 'Beef', cut: 'Steak', unit: 'g', unitPrice: 15.00, inventory: 20, imageUrl: defaultImageUrl, rating: 5.0, description: "The pinnacle of beef quality. Genuine A5 Wagyu Tenderloin, known for its extreme tenderness and rich, buttery marbling. Sold by the gram for specialty orders." },
+            { id: 'prod5', sku: 'LAMB-SHANK-FRZ-10KG', name: 'Frozen New Zealand Lamb Shank', brand: 'Down Under', type: 'Lamb', cut: 'Loin', unit: 'box', unitPrice: 480.00, inventory: 65, imageUrl: defaultImageUrl, rating: 3.9, description: "Classic New Zealand lamb shanks, bone-in and pre-trimmed. Excellent for slow cooking, braising, or stews. Conveniently packaged in 10kg bulk boxes." },
+            { id: 'prod6', sku: 'BEEF-GROUND-8020-5KG', name: '80/20 Lean Ground Beef', brand: 'GMG Select', type: 'Beef', cut: 'Ground', unit: 'kg', unitPrice: 350.00, inventory: 150, imageUrl: defaultImageUrl, rating: 4.1, description: "Standard 80% lean, 20% fat ground beef blend. Versatile for burgers, meatballs, and taco filling. Comes in 5kg vacuum-sealed packs." },
+            { id: 'prod7', sku: 'CHICKEN-THIGH-FRZ', name: 'Frozen Chicken Thighs (Bone-in)', brand: 'PoultryPro', type: 'Chicken', cut: 'Thigh', unit: 'piece', unitPrice: 2.50, inventory: 8, imageUrl: defaultImageUrl, rating: 4.6, description: "Individually frozen, bone-in chicken thighs. A cost-effective and flavorful option for large volume cooking. Consistent size for easy portion control." }, 
+            { id: 'prod8', sku: 'LAMB-CUBE-CHLD', name: 'Chilled Lamb Diced Cubes', brand: 'Down Under', type: 'Lamb', cut: 'Cube', unit: 'kg', unitPrice: 400.00, inventory: 90, imageUrl: defaultImageUrl, rating: 4.7, description: "Pre-diced, chilled lamb cubes ready for kebabs, curries, or roasting. Saves prep time and ensures uniform cooking size." },
+            { id: 'prod9', sku: 'BEEF-FILLET-FRZ-5KG', name: 'Frozen Beef Fillet Whole Muscle', brand: 'GMG Select', type: 'Beef', cut: 'Loin', unit: 'box', unitPrice: 700.00, inventory: 40, imageUrl: defaultImageUrl, rating: 4.9, description: "Whole frozen beef fillet, suitable for slicing into filet mignon or chateaubriand. Excellent quality and value for large volume needs." },
+        ];
+        
+        window.distributorProfile = {
+            creditLimit: 250000,
+            outstandingBalance: 1475.00, // Initial balance from mock orders below
+        };
+
+        // Static helper function to generate mock order IDs
+        const generateMockOrderId = () => 'ORD-' + Math.random().toString(36).substring(2, 10).toUpperCase();
+
+        // Initial mock order data
+        window.orders = [
+            // Delivered Order
+            { id: generateMockOrderId(), items: [{id:'prod1', quantity: 2}, {id:'prod7', quantity: 50}], totalAmount: 1825.00, status: 'Delivered', timestamp: new Date(Date.now() - 86400000 * 5) },
+            // Shipped Order (Contributes to outstanding balance)
+            { id: generateMockOrderId(), items: [{id:'prod2', quantity: 3}], totalAmount: 1560.00, status: 'Shipped', timestamp: new Date(Date.now() - 86400000 * 2) },
+            // Processing Order (Contributes to outstanding balance)
+            { id: generateMockOrderId(), items: [{id:'prod1', quantity: 1}, {id:'prod2', quantity: 1}], totalAmount: 1370.00, status: 'Processing', timestamp: new Date() }
+        ];
+
         // Global state for active filters (Meat Type is now the activeTab)
         window.activeFilters = {
             search: '',
@@ -374,7 +397,7 @@
         };
         
         // State
-        window.activeTab = ''; // Used for the dynamic product tabs (Beef, Lamb, Chicken)
+        window.activeTab = ''; 
         let isSidebarCollapsed = false;
 
         // Function to show custom message modal
@@ -399,207 +422,16 @@
             return `AED ${parseFloat(amount).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`;
         };
 
-        // Helper function for exponential backoff retry logic
-        const fetchWithRetry = async (apiCall, maxRetries = 5) => {
-            for (let i = 0; i < maxRetries; i++) {
-                try {
-                    return await apiCall();
-                } catch (error) {
-                    if (i === maxRetries - 1) throw error;
-                    const delay = Math.pow(2, i) * 1000 + Math.random() * 1000;
-                    console.warn(`Retry attempt ${i + 1}/${maxRetries}. Delaying for ${delay / 1000}s.`, error);
-                    await new Promise(resolve => setTimeout(resolve, delay));
-                }
-            }
-        };
+        // --- MOCK DATA INITIALIZATION (Synchronous) ---
+        const initializeApplicationData = () => {
+            // Data is already loaded into global variables. Just render the views.
+            renderProductTabs();
+            renderDashboard();
+            renderOrderHistory(window.orders);
 
-        // --- FIREBASE INITIALIZATION & AUTH ---
-        if (firebaseConfig) {
-            setLogLevel('debug'); // Enable detailed Firestore logging
-            app = initializeApp(firebaseConfig);
-            db = getFirestore(app);
-            auth = getAuth(app);
-
-            onAuthStateChanged(auth, async (user) => {
-                if (user) {
-                    userId = user.uid;
-                } else {
-                    // Sign in anonymously if no user is found and no custom token is available
-                    try {
-                        if (initialAuthToken) {
-                            await signInWithCustomToken(auth, initialAuthToken);
-                            userId = auth.currentUser.uid;
-                        } else {
-                            const anonymousUser = await signInAnonymously(auth);
-                            userId = anonymousUser.user.uid;
-                        }
-                    } catch (error) {
-                        console.error("Firebase Auth Error:", error);
-                        showMessage("Authentication Error", "Could not sign into the portal. Check console for details.");
-                        return;
-                    }
-                }
-                // Displaying the first 8 characters of the UID
-                const userIdDisplay = document.getElementById('user-id-display');
-                if (userIdDisplay) {
-                    userIdDisplay.textContent = userId.substring(0, 8) + '...';
-                }
-                
-                // Initialize Data Listeners ONLY after successful auth
-                initializeDataListeners();
-            });
-        } else {
-            const loadingProducts = document.getElementById('loading-products');
-            if (loadingProducts) {
-                loadingProducts.innerHTML = `<i data-lucide="alert-triangle" class="w-8 h-8 mx-auto text-red-500 mb-2"></i> Firebase configuration not available. Cannot connect to database.`;
-            }
-            showMessage("System Error", "Firebase configuration is missing. Data persistence is unavailable.");
-        }
-
-        // --- FIRESTORE DATA LISTENERS ---
-        const initializeDataListeners = () => {
-            if (!db || !userId) return;
-
-            const distributorDocRef = doc(db, "artifacts", appId, "users", userId, "profile", "data");
-            const productsCollectionRef = collection(db, "artifacts", appId, "public", "data", "products");
-            const ordersCollectionRef = collection(db, "artifacts", appId, "users", userId, "orders");
-
-            // 1. Listen to Distributor Profile (Credit Line)
-            onSnapshot(distributorDocRef, (docSnap) => {
-                if (docSnap.exists()) {
-                    window.distributorProfile = docSnap.data();
-                } else {
-                    // Create a default profile if it doesn't exist
-                    window.distributorProfile = {
-                        creditLimit: 250000,
-                        outstandingBalance: 0,
-                    };
-                    setDoc(distributorDocRef, window.distributorProfile, { merge: true })
-                        .catch(e => console.error("Error setting initial profile:", e));
-                }
-                renderDashboard();
-            }, (error) => {
-                console.error("Error listening to distributor profile:", error);
-            });
-
-            // 2. Listen to Products (Catalog)
-            onSnapshot(productsCollectionRef, (snapshot) => {
-                window.products = [];
-                snapshot.forEach(doc => {
-                    window.products.push({ id: doc.id, ...doc.data() });
-                });
-                renderProductTabs(); // NEW: Render tabs and default product view
-                
-                const loadingEl = document.getElementById('loading-products');
-                if (loadingEl) {
-                    loadingEl.classList.add('hidden');
-                }
-            }, (error) => {
-                console.error("Error listening to products:", error);
-                const loadingEl = document.getElementById('loading-products');
-                if (loadingEl) {
-                    loadingEl.innerHTML = 'Error loading products.';
-                }
-            });
-
-            // 3. Listen to Orders
-            onSnapshot(query(ordersCollectionRef), (snapshot) => {
-                let orders = [];
-                snapshot.forEach(doc => {
-                    orders.push({ id: doc.id, ...doc.data() });
-                });
-                renderOrderHistory(orders);
-            }, (error) => {
-                console.error("Error listening to orders:", error);
-            });
-
-            // Populate mock data if collections are empty (for first-time use)
-            fetchWithRetry(() => initializeMockData(productsCollectionRef, ordersCollectionRef));
-        };
-
-        // --- MOCK DATA INITIALIZATION ---
-        const initializeMockData = async (productsCollectionRef, ordersCollectionRef) => {
-            const productsSnapshot = await getDocs(productsCollectionRef);
-            if (productsSnapshot.empty) {
-                console.log("Populating mock product data.");
-                // Placeholder image for all products
-                const defaultImageUrl = "https://placehold.co/100x100/34D399/FFFFFF/png?text=GMG+Meat";
-                
-                const mockProducts = [
-                    // Added 'unit', 'imageUrl', 'rating' and 'description' fields
-                    { sku: 'BEEF-STEAK-RBY-10KG', name: 'Premium Beef Ribeye Steak (Frozen)', brand: 'GMG Select', type: 'Beef', cut: 'Steak', unit: 'kg', unitPrice: 850.00, inventory: 50, imageUrl: defaultImageUrl, rating: 4.8, description: "Highly marbled, tender Ribeye steak, individually vacuum-sealed and flash-frozen to lock in flavor and freshness. Ideal for high-end restaurants and large catering events." },
-                    { sku: 'LAMB-LOIN-CHLD-5KG', name: 'Chilled Australian Lamb Loin', brand: 'Down Under', type: 'Lamb', cut: 'Loin', unit: 'kg', unitPrice: 520.00, inventory: 80, imageUrl: defaultImageUrl, rating: 4.5, description: "Prime grade, chilled lamb loin sourced from certified Australian farms. Perfect for carving or portioning into individual chops. Delivered fresh, never frozen." },
-                    { sku: 'CHICKEN-GROUND-1KG', name: 'Bulk Ground Chicken Breast (Chilled)', brand: 'PoultryPro', type: 'Chicken', cut: 'Ground', unit: 'kg', unitPrice: 85.00, inventory: 120, imageUrl: defaultImageUrl, rating: 4.2, description: "Lean ground chicken breast, suitable for health-conscious menus and mass preparation. Low fat content and consistently textured for uniform cooking." },
-                    { sku: 'BEEF-TEND-SLCT-1KG', name: 'Wagyu Beef Tenderloin A5', brand: 'Kobe Reserve', type: 'Beef', cut: 'Steak', unit: 'g', unitPrice: 15.00, inventory: 20, imageUrl: defaultImageUrl, rating: 5.0, description: "The pinnacle of beef quality. Genuine A5 Wagyu Tenderloin, known for its extreme tenderness and rich, buttery marbling. Sold by the gram for specialty orders." },
-                    { sku: 'LAMB-SHANK-FRZ-10KG', name: 'Frozen New Zealand Lamb Shank', brand: 'Down Under', type: 'Lamb', cut: 'Loin', unit: 'box', unitPrice: 480.00, inventory: 65, imageUrl: defaultImageUrl, rating: 3.9, description: "Classic New Zealand lamb shanks, bone-in and pre-trimmed. Excellent for slow cooking, braising, or stews. Conveniently packaged in 10kg bulk boxes." },
-                    { sku: 'BEEF-GROUND-8020-5KG', name: '80/20 Lean Ground Beef', brand: 'GMG Select', type: 'Beef', cut: 'Ground', unit: 'kg', unitPrice: 350.00, inventory: 150, imageUrl: defaultImageUrl, rating: 4.1, description: "Standard 80% lean, 20% fat ground beef blend. Versatile for burgers, meatballs, and taco filling. Comes in 5kg vacuum-sealed packs." },
-                    { sku: 'CHICKEN-THIGH-FRZ', name: 'Frozen Chicken Thighs (Bone-in)', brand: 'PoultryPro', type: 'Chicken', cut: 'Thigh', unit: 'piece', unitPrice: 2.50, inventory: 8, imageUrl: defaultImageUrl, rating: 4.6, description: "Individually frozen, bone-in chicken thighs. A cost-effective and flavorful option for large volume cooking. Consistent size for easy portion control." }, 
-                    { sku: 'LAMB-CUBE-CHLD', name: 'Chilled Lamb Diced Cubes', brand: 'Down Under', type: 'Lamb', cut: 'Cube', unit: 'kg', unitPrice: 400.00, inventory: 90, imageUrl: defaultImageUrl, rating: 4.7, description: "Pre-diced, chilled lamb cubes ready for kebabs, curries, or roasting. Saves prep time and ensures uniform cooking size." },
-                    { sku: 'BEEF-FILLET-FRZ-5KG', name: 'Frozen Beef Fillet Whole Muscle', brand: 'GMG Select', type: 'Beef', cut: 'Loin', unit: 'box', unitPrice: 700.00, inventory: 40, imageUrl: defaultImageUrl, rating: 4.9, description: "Whole frozen beef fillet, suitable for slicing into filet mignon or chateaubriand. Excellent quality and value for large volume needs." },
-                ];
-
-                for (const prod of mockProducts) {
-                    await addDoc(productsCollectionRef, prod).catch(e => console.error("Error adding mock product:", e));
-                }
-            }
-
-            // Orders can be populated based on the products. We need to fetch the newly created products first.
-            const updatedProductsSnapshot = await getDocs(productsCollectionRef);
-            const productsMap = {};
-            updatedProductsSnapshot.forEach(doc => {
-                productsMap[doc.id] = { id: doc.id, ...doc.data() };
-            });
-
-            const ordersSnapshot = await getDocs(ordersCollectionRef);
-            if (ordersSnapshot.empty && Object.keys(productsMap).length >= 3) {
-                console.log("Populating mock order data.");
-                
-                const productIds = Object.keys(productsMap);
-                const p1 = productsMap[productIds[0]]; 
-                const p2 = productsMap[productIds[1]]; 
-                const p3 = productsMap[productIds[6]]; 
-
-                const mockOrders = [
-                    // Delivered Order
-                    { 
-                        items: [{...p1, quantity: 2, unit: p1.unit}, {...p3, quantity: 50, unit: p3.unit}], 
-                        totalAmount: (p1.unitPrice * 2) + (p3.unitPrice * 50),
-                        status: 'Delivered',
-                        timestamp: serverTimestamp(),
-                        distributorId: userId
-                    },
-                    // Shipped Order
-                    { 
-                        items: [{...p2, quantity: 3, unit: p2.unit}], 
-                        totalAmount: p2.unitPrice * 3,
-                        status: 'Shipped',
-                        timestamp: serverTimestamp(),
-                        distributorId: userId
-                    },
-                    // Processing Order (Contributes to outstanding balance)
-                    {
-                        items: [{...p1, quantity: 1, unit: p1.unit}, {...p2, quantity: 1, unit: p2.unit}],
-                        totalAmount: p1.unitPrice + p2.unitPrice,
-                        status: 'Processing',
-                        timestamp: serverTimestamp(),
-                        distributorId: userId
-                    }
-                ];
-                
-                let totalOutstanding = 0;
-                for (const order of mockOrders) {
-                    await addDoc(ordersCollectionRef, order).catch(e => console.error("Error adding mock order:", e));
-                    if (order.status === 'Processing' || order.status === 'Shipped') {
-                         totalOutstanding += order.totalAmount;
-                    }
-                }
-                
-                // Update profile with mock outstanding balance from processing/shipped orders
-                const distributorDocRef = doc(db, "artifacts", appId, "users", userId, "profile", "data");
-                await updateDoc(distributorDocRef, {
-                    outstandingBalance: totalOutstanding,
-                    creditLimit: 250000,
-                }).catch(e => console.error("Error setting initial profile balance:", e));
+            const loadingEl = document.getElementById('loading-products');
+            if (loadingEl) {
+                loadingEl.classList.add('hidden');
             }
         };
 
@@ -612,10 +444,9 @@
             const uniqueTypes = [...new Set(window.products.map(p => p.type))].sort();
             const container = document.getElementById('product-tabs-header');
             
-            if (!container) return; // Guard for safety
+            if (!container) return; 
 
             if (!window.activeTab || !uniqueTypes.includes(window.activeTab)) {
-                // Set default tab to the first type if not already set or invalid
                 window.activeTab = uniqueTypes[0];
             }
 
@@ -638,14 +469,12 @@
         // Switches the active tab and triggers catalog refresh
         window.switchProductTab = (type) => {
             window.activeTab = type;
-            // Clear search and cut filters when switching tabs for a clean slate
             const searchInput = document.getElementById('search-input');
             if(searchInput) searchInput.value = '';
             
             window.activeFilters.search = '';
             window.activeFilters.cut = [];
             
-            // Rerender to update active tab style
             renderProductTabs(); 
         };
 
@@ -658,7 +487,6 @@
                 return;
             }
 
-            // Filter products to only include the active type
             const productsInActiveTab = window.products.filter(p => p.type === window.activeTab);
             const uniqueCuts = [...new Set(productsInActiveTab.map(p => p.cut))].sort();
 
@@ -685,7 +513,7 @@
                 `;
             }).join('');
             
-            lucide.createIcons(); // Re-render icons after DOM update
+            lucide.createIcons(); 
         };
         
         // Handles filter change (for cuts) and triggers product re-render
@@ -700,7 +528,6 @@
                 window.activeFilters[filterName] = filterArray.filter(item => item !== value);
             }
             
-            // Re-render product grid immediately
             renderProductCatalog();
         };
 
@@ -716,15 +543,12 @@
             let starsHtml = '';
             const starClass = "w-4 h-4 fill-yellow-400 text-yellow-400";
             
-            // Full stars
             for (let i = 0; i < fullStars; i++) {
                 starsHtml += `<i data-lucide="star" class="${starClass}"></i>`;
             }
-            // Half star
             if (halfStar) {
                 starsHtml += `<span class="relative"><i data-lucide="star" class="${starClass}"></i></span>`;
             }
-            // Empty stars
             for (let i = 0; i < emptyStars; i++) {
                 starsHtml += `<i data-lucide="star" class="w-4 h-4 text-gray-300"></i>`;
             }
@@ -813,7 +637,7 @@
             
             // Setup quantity controls
             const qtyInput = document.getElementById('detail-qty-input');
-            if (qtyInput) qtyInput.value = 1; // Reset to 1 every time modal opens
+            if (qtyInput) qtyInput.value = 1; 
             
             const updateDetailQuantity = (change) => {
                 const currentQty = parseInt(qtyInput.value, 10);
@@ -827,12 +651,11 @@
             const plusBtn = document.getElementById('detail-plus-btn');
             if (plusBtn) plusBtn.onclick = () => updateDetailQuantity(1);
 
-            // Setup Add to Cart button (FIX: Call updateCart with isSetQuantity=true)
+            // Setup Add to Cart button 
             const addToCartBtn = document.getElementById('detail-add-to-cart-btn');
             if (addToCartBtn) {
                 addToCartBtn.onclick = () => {
                     const quantity = parseInt(qtyInput.value, 10);
-                    // Pass the total quantity and indicate it's a bulk set operation
                     updateCart(productId, quantity, true); 
                     closeModal('product-detail-modal');
                 };
@@ -843,15 +666,13 @@
             modal.classList.remove('hidden');
         };
 
-        // Render the main product catalog grid with sub-sections (MODIFIED FOR SUB-SECTIONS)
+        // Render the main product catalog grid with sub-sections
         window.renderProductCatalog = () => {
             const container = document.getElementById('product-grid');
             const searchInputEl = document.getElementById('search-input');
             const noProductsEl = document.getElementById('no-products');
 
-            // CRITICAL: Guard against null elements if render is called before DOM is fully ready
             if (!container || !searchInputEl || !noProductsEl || !window.activeTab) {
-                console.warn('DOM elements not ready or activeTab not set for renderProductCatalog.');
                 return; 
             }
             
@@ -906,7 +727,6 @@
             // Show/hide no products message
             noProductsEl.classList.toggle('hidden', filteredProducts.length > 0);
 
-            // Re-render icons for new elements
             lucide.createIcons();
         };
 
@@ -933,7 +753,6 @@
                 utilizationBar.style.width = `${Math.min(utilization, 100)}%`;
                 utilizationPercent.textContent = `${Math.min(utilization.toFixed(1), 100)}%`;
                 
-                // Change color if utilization is high
                 if (utilization > 80) {
                     utilizationBar.classList.remove('bg-emerald-600');
                     utilizationBar.classList.add('bg-red-500');
@@ -942,6 +761,8 @@
                     utilizationBar.classList.add('bg-emerald-600');
                 }
             }
+
+            renderOrderHistory(window.orders);
         };
 
         // Render order history table
@@ -954,16 +775,11 @@
                 return;
             }
 
-            // Sort by latest date. Added null check for timestamp before calling toDate().
-            orders.sort((a, b) => {
-                const dateA = a.timestamp ? a.timestamp.toDate() : new Date(0); // Use epoch date for null timestamps (will appear first)
-                const dateB = b.timestamp ? b.timestamp.toDate() : new Date(0);
-                return dateB - dateA; // Sort descending (newest first)
-            });
+            // Sort by latest date. Now using standard JS Date objects.
+            orders.sort((a, b) => b.timestamp - a.timestamp);
 
             container.innerHTML = orders.map(order => {
-                // Also add null check for timestamp rendering
-                const date = order.timestamp ? new Date(order.timestamp.toDate()).toLocaleDateString() : 'N/A';
+                const date = order.timestamp ? new Date(order.timestamp).toLocaleDateString() : 'N/A';
                 const statusColor = {
                     'Delivered': 'bg-green-100 text-green-800',
                     'Shipped': 'bg-blue-100 text-blue-800',
@@ -991,8 +807,6 @@
 
         // --- CART LOGIC ---
         
-        // FIX: Added 'isSetQuantity' parameter to distinguish between incremental updates (catalog grid)
-        // and setting the total quantity (product detail modal).
         window.updateCart = (productId, value, isSetQuantity = false) => {
             const product = window.products.find(p => p.id === productId);
             if (!product) return;
@@ -1000,10 +814,8 @@
             let newQuantity;
 
             if (isSetQuantity) {
-                // From Detail Modal: value is the desired total quantity
                 newQuantity = Math.max(0, value);
             } else {
-                // From Catalog Grid/Cart Modal: value is the change (+1 or -1)
                 const currentQty = window.cart[productId] ? window.cart[productId].quantity : 0;
                 newQuantity = Math.max(0, currentQty + value);
             }
@@ -1014,7 +826,6 @@
                 delete window.cart[productId];
             }
 
-            // Re-render everything
             renderProductCatalog();
             const cartModal = document.getElementById('cart-modal');
             if (cartModal && !cartModal.classList.contains('hidden')) {
@@ -1023,7 +834,6 @@
             updateCartCount();
         };
 
-        // Update the cart icon count
         const updateCartCount = () => {
             const count = Object.values(window.cart).reduce((sum, item) => sum + item.quantity, 0);
             const cartCountEl = document.getElementById('cart-count');
@@ -1058,7 +868,6 @@
             container.innerHTML = cartItems.map(item => {
                 const lineTotal = item.unitPrice * item.quantity;
                 subtotal += lineTotal;
-                // Display unit in the cart modal
                 const unitText = item.unit ? `(${item.unit})` : '';
 
                 return `
@@ -1069,7 +878,6 @@
                         </div>
                         <div class="flex items-center space-x-3">
                             <button onclick="updateCart('${item.id}', -1, false)" class="text-gray-500 hover:text-red-500 transition"><i data-lucide="minus-circle" class="w-5 h-5"></i></button>
-                            <!-- Cart quantity display adjusted to handle units -->
                             <span class="font-medium w-12 text-center">${item.quantity} ${unitText}</span>
                             <button onclick="updateCart('${item.id}', 1, false)" class="text-gray-500 hover:text-emerald-500 transition"><i data-lucide="plus-circle" class="w-5 h-5"></i></button>
                         </div>
@@ -1078,11 +886,11 @@
                 `;
             }).join('');
             
-            lucide.createIcons(); // Render icons inside modal
+            lucide.createIcons(); 
 
             subtotalEl.textContent = formatCurrency(subtotal);
 
-            const availableCredit = window.distributorProfile ? window.distributorProfile.creditLimit - window.distributorProfile.outstandingBalance : 0;
+            const availableCredit = window.distributorProfile.creditLimit - window.distributorProfile.outstandingBalance;
             
             if (subtotal > availableCredit) {
                 creditWarning.classList.remove('hidden');
@@ -1095,8 +903,8 @@
             }
         };
 
-        // Place the order (Firestore write)
-        window.placeOrder = async () => {
+        // Place the order (Synchronous update of local state)
+        window.placeOrder = () => {
             const cartItems = Object.values(window.cart);
             if (cartItems.length === 0) return;
 
@@ -1108,54 +916,48 @@
             }
 
             closeModal('cart-modal');
-            showMessage("Order Processing", "Your order is being submitted and credit checked...");
+            showMessage("Order Placed", "Your order has been placed!");
 
             try {
                 // 1. Create the Order Document
-                // Strip unnecessary product details before saving order items, but keep 'unit'
-                const itemsToSave = cartItems.map(item => ({
-                    id: item.id,
-                    sku: item.sku,
-                    name: item.name,
-                    unitPrice: item.unitPrice,
-                    quantity: item.quantity,
-                    unit: item.unit // Ensure the unit is saved with the order
-                }));
-
                 const newOrder = {
-                    distributorId: userId,
-                    items: itemsToSave,
+                    id: generateMockOrderId(),
+                    distributorId: MOCK_USER_ID,
+                    items: cartItems.map(item => ({
+                        id: item.id,
+                        sku: item.sku,
+                        name: item.name,
+                        unitPrice: item.unitPrice,
+                        quantity: item.quantity,
+                        unit: item.unit 
+                    })),
                     totalAmount: totalAmount,
                     status: 'Processing',
-                    timestamp: serverTimestamp(),
+                    timestamp: new Date(), // Use current JS date
                 };
                 
-                const ordersCollectionRef = collection(db, "artifacts", appId, "users", userId, "orders");
-                await addDoc(ordersCollectionRef, newOrder);
+                // Update global state
+                window.orders.push(newOrder);
 
-                // 2. Update Distributor Credit Line
-                const distributorDocRef = doc(db, "artifacts", appId, "users", userId, "profile", "data");
-                const newOutstandingBalance = window.distributorProfile.outstandingBalance + totalAmount;
+                // 2. Update Distributor Credit Line (Local State Only)
+                window.distributorProfile.outstandingBalance += totalAmount;
                 
-                await updateDoc(distributorDocRef, {
-                    outstandingBalance: newOutstandingBalance
-                });
-
                 // 3. Clear the Cart and notify
                 window.cart = {};
                 updateCartCount();
                 renderProductCatalog();
-                showMessage("Order Placed Successfully!", `Your order for ${formatCurrency(totalAmount)} has been placed and is now in 'Processing'. Your outstanding balance has been updated.`);
+                // Re-render dashboard to show updated balance and new order
+                renderDashboard();
+                showMessage("Order Placed Successfully!", `Your order for ${formatCurrency(totalAmount)} has been placed and your outstanding balance has been updated locally.`);
 
             } catch (error) {
                 console.error("Order Placement Error:", error);
-                showMessage("Order Failed", "There was an error placing your order. Please try again. (Details in console)");
+                showMessage("Order Failed", "There was an error placing your order. (Details in console)");
             }
         };
 
         // --- SIDEBAR COLLAPSE LOGIC ---
         
-        // Toggles the desktop sidebar collapse state
         const toggleSidebar = () => {
             isSidebarCollapsed = !isSidebarCollapsed;
 
@@ -1166,41 +968,31 @@
             
             if (!sidebar || !viewContainer || !toggleIcon || !sidebarTitle) return;
 
-            // 1. Toggle sidebar width/span
             sidebar.classList.toggle('lg:col-span-2', !isSidebarCollapsed);
             sidebar.classList.toggle('lg:col-span-1', isSidebarCollapsed);
             
-            // 2. Toggle view container width/span
             viewContainer.classList.toggle('lg:col-span-10', !isSidebarCollapsed);
             viewContainer.classList.toggle('lg:col-span-11', isSidebarCollapsed);
 
-            // 3. Adjust sidebar content styling for collapsed state
             document.querySelectorAll('#sidebar-content .nav-tab').forEach(button => {
-                // Change button alignment for icon-only view
                 button.classList.toggle('justify-center', isSidebarCollapsed); 
                 button.classList.toggle('text-left', !isSidebarCollapsed); 
-                // Reduce horizontal padding for narrower look
                 button.classList.toggle('px-3', !isSidebarCollapsed); 
                 button.classList.toggle('px-1', isSidebarCollapsed); 
             });
 
-
-            // 4. Hide/Show text content and adjust icon margin
             document.querySelectorAll('.sidebar-text').forEach(el => {
                 el.classList.toggle('opacity-0', isSidebarCollapsed);
                 el.classList.toggle('hidden', isSidebarCollapsed);
             });
             
-            // Hide Menu Title
             sidebarTitle.classList.toggle('hidden', isSidebarCollapsed);
 
-            // Adjust margin for icons
             document.querySelectorAll('.nav-icon').forEach(el => {
                  el.classList.toggle('mr-2', !isSidebarCollapsed);
                  el.classList.toggle('mr-0', isSidebarCollapsed);
             });
             
-            // Toggle icon (Chevron Left/Right)
             toggleIcon.setAttribute('data-lucide', isSidebarCollapsed ? 'chevron-right' : 'chevron-left');
             
             lucide.createIcons();
@@ -1208,9 +1000,7 @@
 
         // --- UI EVENT HANDLERS ---
         
-        // Function to set up all event listeners after DOM is loaded
         const setupEventListeners = () => {
-            // Open Cart Modal
             const cartButton = document.getElementById('cart-button');
             if (cartButton) {
                 cartButton.addEventListener('click', () => {
@@ -1219,39 +1009,32 @@
                 });
             }
             
-            // Desktop Sidebar Toggle Logic
             const sidebarToggle = document.getElementById('sidebar-toggle-desktop');
             if (sidebarToggle) {
                 sidebarToggle.addEventListener('click', toggleSidebar);
             }
 
-            // Tab Switching Logic (for left nav)
             document.querySelectorAll('.nav-tab').forEach(tab => {
                 tab.addEventListener('click', (e) => {
-                    // Determine the button that was clicked (handling the case where the icon is clicked)
                     const clickedButton = e.target.closest('.nav-tab');
                     if (!clickedButton) return; 
 
                     const targetViewId = clickedButton.getAttribute('data-target');
 
-                    // Update desktop nav styles
                     document.querySelectorAll('#left-nav-sidebar .nav-tab').forEach(t => {
                         t.classList.remove('active-nav-tab');
                         t.classList.add('text-gray-700', 'hover:bg-gray-100');
                     });
-                    // Find and update the corresponding desktop button (if one exists)
                     const desktopButton = document.querySelector(`#left-nav-sidebar .nav-tab[data-target="${targetViewId}"]`);
                     if (desktopButton) {
                         desktopButton.classList.add('active-nav-tab');
                         desktopButton.classList.remove('text-gray-700', 'hover:bg-gray-100');
                     }
                     
-                    // Update mobile nav styles
                     document.querySelectorAll('#mobile-nav-drawer .nav-tab').forEach(t => {
                         t.classList.remove('active-nav-tab');
                         t.classList.add('text-gray-700', 'hover:bg-gray-100');
                     });
-                    // Find and update the corresponding mobile button (if one exists)
                     const mobileButton = document.querySelector(`#mobile-nav-drawer .nav-tab[data-target="${targetViewId}"]`);
                     if (mobileButton) {
                         mobileButton.classList.add('active-nav-tab');
@@ -1259,7 +1042,6 @@
                     }
 
 
-                    // Switch view content
                     document.querySelectorAll('.view').forEach(view => {
                         view.classList.add('hidden');
                     });
@@ -1268,26 +1050,22 @@
                         targetView.classList.remove('hidden');
                     }
                     
-                    // Hide mobile drawer after selection
                     const mobileDrawer = document.getElementById('mobile-nav-drawer');
                     if (mobileDrawer) {
                         mobileDrawer.classList.add('hidden');
                     }
 
 
-                    // If switching to dashboard, re-render
                     if (targetViewId === 'dashboard-view') {
                         renderDashboard();
                     } else if (targetViewId === 'catalog-view') {
-                        // If returning to catalog, ensure tabs/products are rendered
                         renderProductTabs();
                     }
                     
-                    lucide.createIcons(); // Re-render icons on new view
+                    lucide.createIcons();
                 });
             });
 
-            // Mobile Nav Toggle
             const mobileNavToggle = document.getElementById('mobile-nav-toggle');
             if (mobileNavToggle) {
                 mobileNavToggle.addEventListener('click', () => {
@@ -1298,20 +1076,20 @@
                 });
             }
 
-            // Attach live search input listener
             const searchInput = document.getElementById('search-input');
             if (searchInput) {
                 searchInput.addEventListener('input', renderProductCatalog);
             }
 
-            // Ensure the main nav sidebar is visible on large screens by default
             const navSidebar = document.getElementById('left-nav-sidebar');
-            if (navSidebar && window.innerWidth >= 1024) { // Tailwind's 'lg' breakpoint
+            if (navSidebar && window.innerWidth >= 1024) { 
                 navSidebar.classList.remove('hidden');
             }
+            
+            // Initial data load and render
+            initializeApplicationData();
         };
 
-        // Initialize on DOMContentLoaded to ensure all elements are available before listeners are attached
         window.addEventListener('DOMContentLoaded', () => {
             lucide.createIcons();
             setupEventListeners();
