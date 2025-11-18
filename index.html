@@ -87,17 +87,17 @@
             </div>
             
             <div id="sidebar-content">
-                <!-- Procure Product (RENAMED to Procure) -->
+                <!-- Procure -->
                 <button class="nav-tab w-full text-left p-3 rounded-lg text-sm font-medium transition active-nav-tab flex items-center" data-target="catalog-view">
                     <i data-lucide="layout-grid" class="nav-icon w-4 h-4 mr-2 transition-all duration-300"></i> <span class="sidebar-text transition-opacity duration-300 whitespace-nowrap">Procure</span>
                 </button>
                 
-                <!-- Credit Line (New dedicated entry) -->
+                <!-- Credit Line -->
                 <button class="nav-tab w-full text-left p-3 rounded-lg text-sm font-medium transition text-gray-700 hover:bg-gray-100 mt-1 flex items-center" data-target="dashboard-view">
                     <i data-lucide="wallet" class="nav-icon w-4 h-4 mr-2 transition-all duration-300"></i> <span class="sidebar-text transition-opacity duration-300 whitespace-nowrap">Credit Line</span>
                 </button>
                 
-                <!-- Orders (New dedicated entry) -->
+                <!-- Orders -->
                 <button class="nav-tab w-full text-left p-3 rounded-lg text-sm font-medium transition text-gray-700 hover:bg-gray-100 mt-1 flex items-center" data-target="dashboard-view">
                     <i data-lucide="package" class="nav-icon w-4 h-4 mr-2 transition-all duration-300"></i> <span class="sidebar-text transition-opacity duration-300 whitespace-nowrap">Orders</span>
                 </button>
@@ -112,7 +112,7 @@
                     <i data-lucide="x" class="w-6 h-6"></i>
                 </button>
             </div>
-            <!-- Procure Product (RENAMED to Procure) -->
+            <!-- Procure -->
             <button class="nav-tab mobile-nav-item w-full text-left p-3 rounded-lg text-lg font-medium transition active-nav-tab mb-2" data-target="catalog-view">
                 <i data-lucide="layout-grid" class="w-5 h-5 mr-3 inline-block align-text-bottom"></i> Procure
             </button>
@@ -166,10 +166,10 @@
                         </div>
                     </div>
 
-                    <!-- Product Grid Container -->
+                    <!-- Product Grid Container (Now holds sections) -->
                     <div class="lg:col-span-3">
-                        <div id="product-grid" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
-                            <!-- Product cards will be injected here in a flat grid -->
+                        <div id="product-grid" class="space-y-8">
+                            <!-- Product sections (headings + grid) will be injected here -->
                             <div class="col-span-full text-center py-10 text-gray-500" id="loading-products">
                                 <i data-lucide="loader" class="w-8 h-8 mx-auto animate-spin text-emerald-500 mb-2"></i>
                                 Loading products...
@@ -843,7 +843,7 @@
             modal.classList.remove('hidden');
         };
 
-        // Render the main product catalog grid (REVERTED TO FLAT GRID)
+        // Render the main product catalog grid with sub-sections (MODIFIED FOR SUB-SECTIONS)
         window.renderProductCatalog = () => {
             const container = document.getElementById('product-grid');
             const searchInputEl = document.getElementById('search-input');
@@ -869,10 +869,37 @@
                 );
                 const cutMatch = activeCuts.length === 0 || activeCuts.includes(p.cut);
                 return searchMatch && cutMatch;
-            }).sort((a, b) => a.name.localeCompare(b.name));
+            }).sort((a, b) => {
+                // Secondary sort: Sort by cut name, then product name for display order
+                if (a.cut < b.cut) return -1;
+                if (a.cut > b.cut) return 1;
+                return a.name.localeCompare(b.name);
+            });
             
-            // Revert: Output a single flat grid, removing sub-section logic
-            const htmlContent = filteredProducts.map(createProductCard).join('');
+            // 2. Group products by Cut for sub-sections
+            const groupedByCut = filteredProducts.reduce((acc, product) => {
+                (acc[product.cut] = acc[product.cut] || []).push(product);
+                return acc;
+            }, {});
+
+            let htmlContent = '';
+            
+            if (filteredProducts.length > 0) {
+                // 3. Iterate over grouped cuts and render sections
+                for (const cut in groupedByCut) {
+                    htmlContent += `
+                        <section class="mb-8">
+                            <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                                <i data-lucide="tag" class="w-5 h-5 mr-2 text-emerald-600"></i>
+                                ${cut} Cuts
+                            </h2>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+                                ${groupedByCut[cut].map(createProductCard).join('')}
+                            </div>
+                        </section>
+                    `;
+                }
+            }
             
             container.innerHTML = htmlContent;
 
