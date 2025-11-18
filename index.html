@@ -3,1532 +3,1292 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GMG Supply Chain Hub Prototype</title>
+    <title>GMG Distributor Order Portal</title>
     <!-- Load Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        /* Custom styles for smooth transitions and fixed layout */
+        /* Custom styles for better aesthetics */
+        :root {
+            --gmg-green: #059669; /* emerald-600 */
+        }
         body {
             font-family: 'Inter', sans-serif;
-            margin: 0;
-            padding: 0;
+            background-color: #f7f7f9;
         }
-        #sidebar {
-            transition: width 0.3s ease-in-out;
+        .scroll-area {
+            max-height: calc(100vh - 12rem); /* Adjusted height for header/footer */
+            overflow-y: auto;
         }
-        #main-content {
-            transition: margin-left 0.3s ease-in-out;
+        .card-shadow {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
         }
-        .main-content-open {
-            margin-left: 256px; /* 64px (w-64) */
+        /* Custom class for active vertical navigation */
+        .active-nav-tab {
+            background-color: #ecfdf5; /* emerald-50 */
+            color: #047857; /* emerald-700 */
+            font-weight: 600;
         }
-        .main-content-closed {
-            margin-left: 80px; /* 20px (w-20) */
+        .active-nav-tab:hover {
+            background-color: #d1fae5; /* slightly darker emerald-100 on hover */
         }
-        .sidebar-item-text {
-            transition: opacity 0.1s;
+        /* Style for active horizontal product tab */
+        .active-product-tab {
+            color: #059669; 
+            border-color: #059669;
+            font-weight: 600;
         }
-        .sidebar-collapsed .sidebar-item-text {
-            opacity: 0;
-            display: none;
+        /* Ensure text hides cleanly when sidebar collapses */
+        .nav-icon {
+            transition: margin 0.3s ease;
         }
-        /* Custom scrollbar for better look */
-        ::-webkit-scrollbar {
-            width: 8px;
-        }
-        ::-webkit-scrollbar-thumb {
-            background-color: #a5b4fc; /* indigo-300 */
-            border-radius: 4px;
-        }
-        ::-webkit-scrollbar-track {
-            background-color: #f3f4f6; /* gray-100 */
+        /* Style for the dynamic filter checkboxes */
+        input[type="checkbox"]:checked {
+            border-color: #059669; 
+            background-color: #059669;
         }
     </style>
 </head>
-<body class="bg-gray-50 min-h-screen">
+<body class="min-h-screen flex flex-col">
 
-    <!-- Main App Container -->
-    <div id="app-container">
-        <!-- Content will be rendered here immediately by JS -->
+    <!-- Header -->
+    <header class="bg-white card-shadow sticky top-0 z-10">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+            <h1 class="text-2xl font-bold text-gray-800 flex items-center">
+                <span class="text-emerald-600 mr-2">GMG</span> Distributor Portal
+            </h1>
+            <div class="flex items-center space-x-4">
+                <button id="cart-button" class="relative p-2 rounded-full hover:bg-gray-100 transition">
+                    <i data-lucide="shopping-cart" class="w-6 h-6 text-gray-600"></i>
+                    <span id="cart-count" class="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-red-100 transform translate-x-1/2 -translate-y-1/2 bg-red-600 rounded-full">0</span>
+                </button>
+                <div id="user-info" class="text-sm font-medium text-gray-700">
+                    User ID: <span id="user-id-display" class="font-mono text-xs bg-gray-100 px-2 py-1 rounded-md">...</span>
+                </div>
+                <!-- Mobile Navigation Toggle -->
+                <button id="mobile-nav-toggle" class="lg:hidden p-2 rounded-full hover:bg-gray-100 transition">
+                    <i data-lucide="menu" class="w-6 h-6 text-gray-600"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Area - Grid Layout -->
+    <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- 1. Left Navigation Sidebar (lg:col-span-2) -->
+        <div id="left-nav-sidebar" class="lg:col-span-2 hidden lg:block bg-white p-4 rounded-xl card-shadow h-fit sticky top-28 transition-all duration-300">
+            <div class="flex justify-between items-center mb-3">
+                <h3 id="sidebar-title" class="text-xs font-semibold uppercase text-gray-500 ml-3 transition-opacity duration-300">Menu</h3>
+                <button id="sidebar-toggle-desktop" class="p-1 rounded-full text-gray-500 hover:bg-gray-100 transition">
+                    <i data-lucide="chevron-left" id="toggle-icon" class="w-4 h-4"></i>
+                </button>
+            </div>
+            
+            <div id="sidebar-content">
+                <!-- Procure Product (RENAMED to Procure) -->
+                <button class="nav-tab w-full text-left p-3 rounded-lg text-sm font-medium transition active-nav-tab flex items-center" data-target="catalog-view">
+                    <i data-lucide="layout-grid" class="nav-icon w-4 h-4 mr-2 transition-all duration-300"></i> <span class="sidebar-text transition-opacity duration-300 whitespace-nowrap">Procure</span>
+                </button>
+                
+                <!-- Credit Line (New dedicated entry) -->
+                <button class="nav-tab w-full text-left p-3 rounded-lg text-sm font-medium transition text-gray-700 hover:bg-gray-100 mt-1 flex items-center" data-target="dashboard-view">
+                    <i data-lucide="wallet" class="nav-icon w-4 h-4 mr-2 transition-all duration-300"></i> <span class="sidebar-text transition-opacity duration-300 whitespace-nowrap">Credit Line</span>
+                </button>
+                
+                <!-- Orders (New dedicated entry) -->
+                <button class="nav-tab w-full text-left p-3 rounded-lg text-sm font-medium transition text-gray-700 hover:bg-gray-100 mt-1 flex items-center" data-target="dashboard-view">
+                    <i data-lucide="package" class="nav-icon w-4 h-4 mr-2 transition-all duration-300"></i> <span class="sidebar-text transition-opacity duration-300 whitespace-nowrap">Orders</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Mobile Navigation Drawer -->
+        <div id="mobile-nav-drawer" class="fixed inset-0 bg-white z-40 p-6 hidden lg:hidden">
+             <div class="flex justify-between items-center mb-6 border-b pb-4">
+                <h3 class="text-xl font-bold text-gray-800">Navigation</h3>
+                <button onclick="document.getElementById('mobile-nav-drawer').classList.add('hidden')" class="text-gray-400 hover:text-gray-600 transition">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+            <!-- Procure Product (RENAMED to Procure) -->
+            <button class="nav-tab mobile-nav-item w-full text-left p-3 rounded-lg text-lg font-medium transition active-nav-tab mb-2" data-target="catalog-view">
+                <i data-lucide="layout-grid" class="w-5 h-5 mr-3 inline-block align-text-bottom"></i> Procure
+            </button>
+            <!-- Credit Line -->
+            <button class="nav-tab mobile-nav-item w-full text-left p-3 rounded-lg text-lg font-medium transition text-gray-700 hover:bg-gray-100 mb-2" data-target="dashboard-view">
+                <i data-lucide="wallet" class="w-5 h-5 mr-3 inline-block align-text-bottom"></i> Credit Line
+            </button>
+            <!-- Orders -->
+            <button class="nav-tab mobile-nav-item w-full text-left p-3 rounded-lg text-lg font-medium transition text-gray-700 hover:bg-gray-100" data-target="dashboard-view">
+                <i data-lucide="package" class="w-5 h-5 mr-3 inline-block align-text-bottom"></i> Orders
+            </button>
+        </div>
+        
+        <!-- 2. View Container (lg:col-span-10 / 12 for mobile) -->
+        <div id="view-container" class="lg:col-span-10 col-span-12 transition-all duration-300">
+
+            <!-- 1. Product Catalog View (Procure Product) - Now Tabbed & Grouped -->
+            <div id="catalog-view" class="view">
+                
+                <!-- Product Tabs (Meat Type) -->
+                <div id="product-tabs-header" class="flex flex-wrap border-b border-gray-200 bg-white p-3 rounded-xl card-shadow mb-6 sticky top-20 z-0">
+                    <!-- Tabs will be dynamically injected here -->
+                    <div class="text-gray-500 p-2">Loading product categories...</div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+
+                    <!-- Filter / Search Sidebar (Now for the active tab) -->
+                    <div class="lg:col-span-1 bg-white p-6 rounded-xl card-shadow h-fit sticky top-40">
+                        <h2 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                            <i data-lucide="search" class="w-5 h-5 mr-2 text-emerald-600"></i>
+                            Quick Search
+                        </h2>
+                        
+                        <!-- Search Input -->
+                        <div class="mb-6 border-b pb-4">
+                            <label for="search-input" class="block text-sm font-medium text-gray-700 mb-1">Search SKU/Name</label>
+                            <input type="text" id="search-input" placeholder="Search within current type..." class="w-full p-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500">
+                        </div>
+
+                        <!-- Cut Filters (Faceted Search Checkboxes - Dynamic based on active tab) -->
+                        <div class="mb-4">
+                            <h2 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                                <i data-lucide="cut" class="w-5 h-5 mr-2 text-emerald-600"></i>
+                                Cut Filters
+                            </h2>
+                            <div id="filter-cut-container" class="space-y-2 text-sm">
+                                <!-- Checkboxes for cuts will be injected here -->
+                                <p class="text-gray-400">Select a category...</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Product Grid Container -->
+                    <div class="lg:col-span-3">
+                        <div id="product-grid" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+                            <!-- Product cards will be injected here in a flat grid -->
+                            <div class="col-span-full text-center py-10 text-gray-500" id="loading-products">
+                                <i data-lucide="loader" class="w-8 h-8 mx-auto animate-spin text-emerald-500 mb-2"></i>
+                                Loading products...
+                            </div>
+                        </div>
+                        <div id="no-products" class="hidden col-span-full text-center py-10 text-gray-500 text-lg font-medium">
+                            No products match your current search criteria.
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- 2. Distributor Dashboard View -->
+            <div id="dashboard-view" class="view hidden">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6">Financial Summary & Order Tracking</h2>
+
+                <!-- CREDIT LINE OVERVIEW SECTION -->
+                <h3 class="text-xl font-semibold text-gray-800 mb-4 flex items-center">
+                    <i data-lucide="wallet" class="w-5 h-5 mr-2 text-emerald-600"></i> Credit Line Overview
+                </h3>
+
+                <!-- Financial Card -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div class="bg-white p-6 rounded-xl card-shadow border-l-4 border-emerald-600">
+                        <p class="text-sm font-medium text-gray-500">Total Credit Limit</p>
+                        <p class="text-2xl font-bold text-gray-900 mt-1" id="credit-limit">AED 0.00</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl card-shadow border-l-4 border-yellow-500">
+                        <p class="text-sm font-medium text-gray-500">Outstanding Balance</p>
+                        <p class="text-2xl font-bold text-gray-900 mt-1" id="credit-used">AED 0.00</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl card-shadow border-l-4 border-blue-500">
+                        <p class="text-sm font-medium text-gray-500">Available Credit</p>
+                        <p class="text-2xl font-bold text-gray-900 mt-1" id="credit-available">AED 0.00</p>
+                    </div>
+                </div>
+
+                <!-- Credit Utilization Bar -->
+                <div class="bg-white p-6 rounded-xl card-shadow mb-8">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-3">Credit Utilization</h3>
+                    <div class="w-full bg-gray-200 rounded-full h-4 relative">
+                        <div id="utilization-bar" class="bg-emerald-600 h-4 rounded-full" style="width: 0%"></div>
+                        <span id="utilization-percent" class="absolute right-2 top-0.5 text-xs text-white font-semibold">0%</span>
+                    </div>
+                </div>
+                
+                <!-- ORDER TRACKING SECTION -->
+                <h3 class="text-xl font-semibold text-gray-800 mb-4 mt-8 flex items-center">
+                    <i data-lucide="package" class="w-5 h-5 mr-2 text-emerald-600"></i> Recent Orders and Tracking
+                </h3>
+
+                <!-- Order History Table -->
+                <div class="bg-white p-6 rounded-xl card-shadow">
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order ID</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Value</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Track</th>
+                                </tr>
+                            </thead>
+                            <tbody id="order-history-body" class="bg-white divide-y divide-gray-200">
+                                <!-- Orders will be injected here -->
+                                <tr>
+                                    <td colspan="5" class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">No orders placed yet.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Cart Modal -->
+    <div id="cart-modal" class="fixed inset-0 bg-gray-600 bg-opacity-75 hidden z-50 overflow-y-auto">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="bg-white rounded-xl w-full max-w-lg card-shadow">
+                <!-- Modal Header -->
+                <div class="p-6 border-b flex justify-between items-center">
+                    <h3 class="text-xl font-bold text-gray-800 flex items-center"><i data-lucide="shopping-cart" class="w-5 h-5 mr-2"></i> Shopping Cart</h3>
+                    <button onclick="closeModal('cart-modal')" class="text-gray-400 hover:text-gray-600 transition">
+                        <i data-lucide="x" class="w-6 h-6"></i>
+                    </button>
+                </div>
+                <!-- Modal Body -->
+                <div class="p-6 scroll-area">
+                    <div id="cart-items-container">
+                        <p id="empty-cart-message" class="text-gray-500 text-center py-4 hidden">Your cart is empty. Add some products!</p>
+                        <!-- Cart items will be injected here -->
+                    </div>
+                </div>
+                <!-- Modal Footer -->
+                <div class="p-6 border-t">
+                    <div class="flex justify-between items-center mb-4">
+                        <span class="text-lg font-semibold text-gray-700">Subtotal:</span>
+                        <span id="cart-subtotal" class="text-xl font-bold text-emerald-600">AED 0.00</span>
+                    </div>
+                    <button id="place-order-button" onclick="placeOrder()" class="w-full bg-emerald-600 text-white p-3 rounded-lg hover:bg-emerald-700 transition font-bold disabled:bg-gray-400 disabled:cursor-not-allowed">
+                        Place Order
+                    </button>
+                    <p id="credit-warning" class="text-red-500 text-sm mt-2 hidden text-center font-medium">Order total exceeds available credit line!</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Product Detail Modal -->
+    <div id="product-detail-modal" class="fixed inset-0 bg-gray-600 bg-opacity-75 hidden z-50 overflow-y-auto">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="bg-white rounded-xl w-full max-w-2xl card-shadow">
+                <!-- Modal Header -->
+                <div class="p-6 border-b flex justify-between items-center">
+                    <h3 id="detail-modal-title" class="text-xl font-bold text-gray-800">Product Details</h3>
+                    <button onclick="closeModal('product-detail-modal')" class="text-gray-400 hover:text-gray-600 transition">
+                        <i data-lucide="x" class="w-6 h-6"></i>
+                    </button>
+                </div>
+                <!-- Modal Body -->
+                <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Image and Basic Info -->
+                    <div class="md:col-span-1">
+                        <img id="detail-image" src="" alt="Product Image" class="w-full h-auto rounded-lg object-cover border border-gray-100 mb-4" onerror="this.onerror=null;this.src='https://placehold.co/100x100/A7F3D0/047857?text=No+Image';">
+                        <p class="text-sm text-gray-500">SKU: <span id="detail-sku" class="font-medium text-gray-700"></span></p>
+                        <p class="text-sm text-gray-500">Brand: <span id="detail-brand" class="font-medium text-gray-700"></span></p>
+                        <p class="text-sm text-gray-500">Inventory: <span id="detail-inventory" class="font-medium text-gray-700"></span></p>
+                    </div>
+
+                    <!-- Price, Rating, and Description -->
+                    <div class="md:col-span-1">
+                        <p class="text-3xl font-extrabold text-emerald-700 mb-2">
+                            <span id="detail-price"></span> 
+                            <span id="detail-unit" class="text-lg font-normal text-gray-500"></span>
+                        </p>
+                        <div id="detail-rating" class="mb-4"></div>
+                        
+                        <h4 class="text-lg font-semibold text-gray-800 border-b pb-1 mb-2">Description</h4>
+                        <p id="detail-description" class="text-gray-600 text-sm"></p>
+                        
+                        <!-- Add to Cart controls -->
+                        <div class="mt-6 pt-4 border-t">
+                            <h4 class="text-md font-semibold text-gray-800 mb-2">Order Quantity</h4>
+                            <div class="flex items-center space-x-2">
+                                <button id="detail-minus-btn" class="p-1.5 border border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-50 transition">
+                                    <i data-lucide="minus" class="w-4 h-4"></i>
+                                </button>
+                                <input type="number" id="detail-qty-input" value="1" min="1" class="font-medium text-lg w-16 text-center border rounded-lg p-1.5 focus:ring-emerald-500 focus:border-emerald-500">
+                                <button id="detail-plus-btn" class="p-1.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition">
+                                    <i data-lucide="plus" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                            <button id="detail-add-to-cart-btn" class="w-full bg-emerald-600 text-white p-3 rounded-lg hover:bg-emerald-700 transition font-bold mt-4">
+                                Add to Cart
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Custom Message Modal -->
+    <div id="message-modal" class="fixed inset-0 bg-gray-600 bg-opacity-75 hidden z-50">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="bg-white rounded-xl w-full max-w-sm card-shadow p-6 text-center">
+                <h3 id="message-title" class="text-xl font-bold mb-3 text-gray-800"></h3>
+                <p id="message-body" class="text-gray-600 mb-6"></p>
+                <button onclick="closeModal('message-modal')" class="bg-emerald-600 text-white p-2 w-full rounded-lg hover:bg-emerald-700 transition font-semibold">
+                    OK
+                </button>
+            </div>
+        </div>
     </div>
 
-    <!-- Global Notification/Message Box -->
-    <div id="notification-box" class="fixed bottom-4 right-4 bg-indigo-600 text-white p-3 rounded-lg shadow-xl opacity-0 transition-opacity duration-300 z-50 pointer-events-none"></div>
-
-
+    <!-- Firebase SDKs -->
     <script type="module">
-        // Import Firebase services
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, collection, onSnapshot, updateDoc, addDoc, query, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, onSnapshot, collection, query, addDoc, serverTimestamp, getDocs, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // --- Global Firebase Configuration and Utility Functions ---
-
-        // Mandatory global variables for Canvas environment
+        // Global variables provided by the environment
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
         const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
-        let db = null;
-        let auth = null;
-        let userId = null;
-        let isAuthReady = false;
+        let app, db, auth, userId = 'loading';
+        window.cart = {}; // Global cart object
+        window.products = []; // Global product list
+        window.distributorProfile = null; // Global profile
+        
+        // Global state for active filters (Meat Type is now the activeTab)
+        window.activeFilters = {
+            search: '',
+            type: [], 
+            cut: []
+        };
+        
+        // State
+        window.activeTab = ''; // Used for the dynamic product tabs (Beef, Lamb, Chicken)
+        let isSidebarCollapsed = false;
 
-        // --- App State Management ---
-        const appState = {
-            currentRole: 'GMG_ADMIN',
-            currentView: 'Dashboard',
-            isSidebarOpen: true,
-            inventory: [],
-            distributors: [],
-            orders: [],
-            expandedOrderIds: new Set(), // Track expanded orders for collapsible details
-            cart: {}, // Client cart
+        // Function to show custom message modal
+        window.showMessage = (title, body) => {
+            const titleEl = document.getElementById('message-title');
+            const bodyEl = document.getElementById('message-body');
+            const modalEl = document.getElementById('message-modal');
+
+            if (titleEl) titleEl.textContent = title;
+            if (bodyEl) bodyEl.textContent = body;
+            if (modalEl) modalEl.classList.remove('hidden');
         };
 
-        const ROLE_MAP = {
-            GMG_ADMIN: 'GMG Admin',
-            CLIENT: 'Client (Buyer)',
-            DISTRIBUTOR: 'Distributor (Fulfillment)',
+        // Function to close any modal
+        window.closeModal = (id) => {
+            const modal = document.getElementById(id);
+            if(modal) modal.classList.add('hidden');
         };
 
-        const VIEWS = {
-            GMG_ADMIN: [
-                { id: 'Dashboard', name: 'Dashboard', icon: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-layout-dashboard"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/></svg>' },
-                { id: 'DistributorManagement', name: 'Distributor Management', icon: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-users"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>' },
-                { id: 'InventoryManagement', name: 'Inventory Management', icon: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-package"><path d="m7.5 4.27 9 5.15"/><path d="m21 16.6V9a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 9v7.6"/><path d="M3 17a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4a2 2 0 0 0 1-1.73"/><path d="m12 22 0-10"/><path d="M15 9.47 12 11 9 9.47"/></svg>' },
-                { id: 'OrderOverview', name: 'Order Overview', icon: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-shopping-cart"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.72a2 2 0 0 0 2-1.58L23 6H6"/></svg>' },
-            ],
-            CLIENT: [
-                { id: 'Dashboard', name: 'Dashboard', icon: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-layout-dashboard"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/></svg>' },
-                { id: 'ProductCatalog', name: 'Product Catalog', icon: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-shopping-cart"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.72a2 2 0 0 0 2-1.58L23 6H6"/></svg>' },
-                { id: 'MyOrders', name: 'My Orders', icon: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-truck"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M19 18H9"/><path d="m14 9 4 4 4-4"/><path d="M5 18v2"/><path d="M19 18v2"/><circle cx="17" cy="18" r="2"/></svg>' },
-            ],
-            DISTRIBUTOR: [
-                { id: 'Dashboard', name: 'Dashboard', icon: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-layout-dashboard"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/></svg>' },
-                { id: 'Fulfillment', name: 'Fulfillment & Logistics', icon: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-truck"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M19 18H9"/><path d="m14 9 4 4 4-4"/><path d="M5 18v2"/><path d="M19 18v2"/><circle cx="17" cy="18" r="2"/></svg>' },
-                { id: 'CreditStatus', name: 'Credit Line Status', icon: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-dollar-sign"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>' },
-            ],
-        };
-        const getIcon = (svgString) => {
-            // Helper to get the actual SVG HTML
-            const temp = document.createElement('div');
-            temp.innerHTML = svgString.trim();
-            return temp.firstChild.outerHTML;
-        }
-
-        // --- Utility Functions ---
-
-        const notify = (msg) => {
-            const box = document.getElementById('notification-box');
-            box.textContent = msg;
-            box.classList.remove('opacity-0', 'pointer-events-none');
-            box.classList.add('opacity-100');
-            setTimeout(() => {
-                box.classList.remove('opacity-100');
-                box.classList.add('opacity-0', 'pointer-events-none');
-            }, 3000);
+        // Utility: Format currency
+        const formatCurrency = (amount) => {
+            return `AED ${parseFloat(amount).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`;
         };
 
-        const getStatusColor = (status) => {
-            switch (status) {
-                case 'Pending': return 'bg-yellow-100 text-yellow-800 border-yellow-300';
-                case 'Fulfilled': return 'bg-green-100 text-green-800 border-green-300';
-                case 'Shipped': return 'bg-blue-100 text-blue-800 border-blue-300';
-                case 'Cancelled': return 'bg-red-100 text-red-800 border-red-300';
-                default: return 'bg-gray-100 text-gray-800 border-gray-300';
+        // Helper function for exponential backoff retry logic
+        const fetchWithRetry = async (apiCall, maxRetries = 5) => {
+            for (let i = 0; i < maxRetries; i++) {
+                try {
+                    return await apiCall();
+                } catch (error) {
+                    if (i === maxRetries - 1) throw error;
+                    const delay = Math.pow(2, i) * 1000 + Math.random() * 1000;
+                    console.warn(`Retry attempt ${i + 1}/${maxRetries}. Delaying for ${delay / 1000}s.`, error);
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                }
             }
         };
 
-        const getAdminPath = (col) => `artifacts/${appId}/users/${userId}/${col}`;
-        const getPublicPath = (col) => `artifacts/${appId}/public/data/${col}`;
-        
-        // --- Core Application Logic (State Changes and Rerendering) ---
+        // --- FIREBASE INITIALIZATION & AUTH ---
+        if (firebaseConfig) {
+            setLogLevel('debug'); // Enable detailed Firestore logging
+            app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            auth = getAuth(app);
 
-        // Expose renderApp to the window scope so inline event handlers can call it.
-        window.renderApp = () => {
-            renderLayout();
-        };
-
-        const setCurrentRole = (role) => {
-            appState.currentRole = role;
-            appState.currentView = 'Dashboard';
-            window.renderApp();
-        };
-
-        const setCurrentView = (viewId) => {
-            appState.currentView = viewId;
-            window.renderApp();
-        };
-        
-        const toggleSidebar = () => {
-            appState.isSidebarOpen = !appState.isSidebarOpen;
-            renderSidebar();
-            window.renderApp();
-        };
-        
-        const toggleOrderDetails = (orderId) => {
-            if (appState.expandedOrderIds.has(orderId)) {
-                appState.expandedOrderIds.delete(orderId);
-            } else {
-                appState.expandedOrderIds.add(orderId);
-            }
-            renderContent(); // Re-render the current view
-        };
-
-        // --- Data Persistence Functions ---
-
-        const addUpdateDistributor = async (data) => {
-            if (!db || !userId) return;
-            const distributorRef = collection(db, getAdminPath('distributors'));
-            try {
-                if (data.id) {
-                    const docRef = doc(distributorRef, data.id);
-                    await updateDoc(docRef, {
-                        name: data.name,
-                        contact: data.contact,
-                        maxCredit: parseFloat(data.maxCredit) || 0,
-                        currentCredit: parseFloat(data.currentCredit) || 0,
-                    });
-                    notify(`Distributor ${data.name} updated.`);
+            onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    userId = user.uid;
                 } else {
-                    await addDoc(distributorRef, {
-                        name: data.name,
-                        contact: data.contact,
-                        maxCredit: parseFloat(data.maxCredit) || 0,
-                        currentCredit: parseFloat(data.maxCredit) || 0,
-                        adminId: userId
-                    });
-                    notify(`Distributor ${data.name} onboarded.`);
-                }
-            } catch (e) {
-                console.error("Error adding/updating distributor:", e);
-                notify("Failed to save distributor.");
-            }
-        };
-
-        const updateInventory = async (item) => {
-            if (!db || !userId) return;
-            const inventoryRef = collection(db, getAdminPath('inventory'));
-            try {
-                const docRef = doc(inventoryRef, item.id);
-                await updateDoc(docRef, {
-                    stock: parseInt(item.stock, 10),
-                    price: parseFloat(item.price),
-                });
-                notify(`${item.name} stock and price updated.`);
-            } catch (e) {
-                console.error("Error updating inventory:", e);
-                notify("Failed to update inventory.");
-            }
-        };
-
-        const placeNewOrder = async (orderDetails) => {
-            if (!db || !userId || appState.inventory.length === 0 || appState.distributors.length === 0) {
-                notify("Order failed: App not ready or missing data/distributor configuration.");
-                return;
-            }
-
-            const totalCost = orderDetails.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-            
-            // Simple round-robin assignment for demonstration
-            const lastDistId = localStorage.getItem('lastDistId') || (appState.distributors.length > 0 ? appState.distributors[appState.distributors.length - 1].id : null);
-            let assignedDistributor = null;
-
-            if (lastDistId) {
-                const lastIndex = appState.distributors.findIndex(d => d.id === lastDistId);
-                const nextIndex = (lastIndex + 1) % appState.distributors.length;
-                assignedDistributor = appState.distributors[nextIndex]; 
-                localStorage.setItem('lastDistId', assignedDistributor.id);
-            } else {
-                assignedDistributor = appState.distributors[0];
-            }
-
-
-            if (totalCost > assignedDistributor.currentCredit) {
-                notify(`Order failed: Total cost (${totalCost.toFixed(2)} AED) exceeds Distributor credit line of ${assignedDistributor.currentCredit.toFixed(2)} AED.`);
-                return;
-            }
-
-            const orderRef = collection(db, getPublicPath('orders'));
-            try {
-                const newOrder = {
-                    clientId: userId,
-                    clientName: `Client ${userId.substring(0, 4)}`,
-                    distributorId: assignedDistributor.id,
-                    distributorName: assignedDistributor.name,
-                    totalCost: totalCost,
-                    items: orderDetails.items,
-                    status: 'Pending',
-                    createdAt: new Date().toISOString(),
-                };
-                await addDoc(orderRef, newOrder);
-
-                const distDocRef = doc(db, getAdminPath('distributors'), assignedDistributor.id);
-                await updateDoc(distDocRef, {
-                    currentCredit: assignedDistributor.currentCredit - totalCost,
-                });
-
-                notify(`Order placed successfully! Cost: ${totalCost.toFixed(2)} AED.`);
-                appState.cart = {}; // Clear cart after successful order
-                renderContent();
-            } catch (e) {
-                console.error("Error placing order:", e);
-                notify("Failed to place order.");
-            }
-        };
-
-        const fulfillOrder = async (orderId, newStatus) => {
-            if (!db) return;
-            const orderDocRef = doc(db, getPublicPath('orders'), orderId);
-            try {
-                const order = appState.orders.find(o => o.id === orderId);
-                if (!order) {
-                    notify("Order not found.");
-                    return;
-                }
-
-                await updateDoc(orderDocRef, { status: newStatus });
-
-                if (newStatus === 'Fulfilled') {
-                    for (const item of order.items) {
-                        const skuItem = appState.inventory.find(i => i.sku === item.sku);
-                        if (skuItem) {
-                            const docRef = doc(db, getAdminPath('inventory'), skuItem.id);
-                            const currentStockItem = appState.inventory.find(i => i.id === skuItem.id); 
-                            if (currentStockItem) {
-                                await updateDoc(docRef, {
-                                    stock: currentStockItem.stock - item.quantity,
-                                });
-                            }
-                        }
-                    }
-                }
-
-                notify(`Order ${orderId.substring(0, 4)} status updated to ${newStatus}.`);
-            } catch (e) {
-                console.error("Error fulfilling order:", e);
-                notify("Failed to update order status.");
-            }
-        };
-
-        // --- Data Seeding ---
-
-        const initializeSKUs = async () => {
-            if (!db || !userId) return;
-
-            // --- SKU Seeding (50 SKUs) ---
-            const inventoryRef = collection(db, getAdminPath('inventory'));
-            let inventorySnapshot = await getDocs(query(inventoryRef));
-
-            if (inventorySnapshot.empty) {
-                const baseSkus = [
-                    { name: 'Running Shoes X', category: 'Sport', stock: 120, price: 129.50 },
-                    { name: 'Protein Powder (Vanilla)', category: 'Health', stock: 500, price: 45.99 },
-                    { name: 'Smart Aroma Diffuser', category: 'Home', stock: 300, price: 35.00 },
-                    { name: 'Organic Face Serum', category: 'Beauty', stock: 80, price: 65.00 },
-                    { name: 'Eco-Friendly Water Bottle', category: 'Everyday', stock: 750, price: 19.99 },
-                ];
-                const mockSkus = [];
-                for (let i = 1; i <= 50; i++) {
-                    const base = baseSkus[i % baseSkus.length];
-                    mockSkus.push({
-                        sku: `${base.category.toUpperCase().substring(0, 4)}-${1000 + i}`,
-                        name: `${base.name} v${i}`,
-                        category: base.category,
-                        stock: base.stock + i * 5,
-                        price: base.price + (i * 0.5),
-                    });
-                }
-
-                for (const item of mockSkus) {
-                    await addDoc(inventoryRef, { ...item, adminId: userId });
-                }
-                // Fetch updated inventory after seeding to use for order seeding
-                inventorySnapshot = await getDocs(query(inventoryRef));
-                appState.inventory = inventorySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                notify("Initial 50 SKUs added to inventory.");
-            } else {
-                appState.inventory = inventorySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            }
-
-            // --- Distributor Seeding (35 Distributors) ---
-            const distributorRef = collection(db, getAdminPath('distributors'));
-            let distributorSnapshot = await getDocs(query(distributorRef));
-
-            if (distributorSnapshot.empty) {
-                const mockDistributors = [];
-                for (let i = 1; i <= 35; i++) {
-                    const baseCredit = 50000 + (i * 2000);
-                    mockDistributors.push({
-                        name: `Distributor Co. ${i}`,
-                        contact: `sales_d${i}@gmgdistro.ae`,
-                        maxCredit: baseCredit,
-                        currentCredit: baseCredit,
-                    });
-                }
-
-                for (const dist of mockDistributors) {
-                    await addDoc(distributorRef, { ...dist, adminId: userId });
-                }
-                // Fetch updated distributors after seeding
-                distributorSnapshot = await getDocs(query(distributorRef));
-                appState.distributors = distributorSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                notify("Initial 35 Distributors onboarded.");
-            } else {
-                appState.distributors = distributorSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            }
-
-            // --- Order Seeding (75 + 12 = 87 Orders) --- 
-            const ordersRef = collection(db, getPublicPath('orders'));
-            const ordersSnapshot = await getDocs(query(ordersRef));
-
-            const TARGET_RANDOM_ORDERS = 75;
-            const TARGET_CLIENT_ORDERS = 12;
-
-            if (ordersSnapshot.empty && appState.inventory.length > 0 && appState.distributors.length > 0) {
-                const mockOrders = [];
-                const orderStatuses = ['Pending', 'Fulfilled', 'Shipped'];
-                
-                const inventoryItems = appState.inventory;
-                const distributorItems = appState.distributors;
-                
-                const createRandomOrder = (i, clientIdOverride = null) => {
-                    const status = orderStatuses[i % 3];
-                    const distIndex = i % distributorItems.length;
-                    const assignedDistributor = distributorItems[distIndex];
-                    const clientId = clientIdOverride || `CLIENT-${100 + (i % 5)}`;
-                    const clientName = clientIdOverride ? `Client Buyer (You)` : `Client Buyer ${100 + (i % 5)}`;
-
-                    // Create 2 to 4 random line items
-                    const numItems = Math.floor(Math.random() * 3) + 2;
-                    const items = [];
-                    let totalCost = 0;
-                    
-                    for (let j = 0; j < numItems; j++) {
-                        const itemIndex = (i + j) % inventoryItems.length;
-                        const item = inventoryItems[itemIndex];
-                        const quantity = Math.floor(Math.random() * 10) + 1;
-                        
-                        items.push({ 
-                            sku: item.sku, 
-                            name: item.name, 
-                            quantity: quantity, 
-                            price: item.price 
-                        });
-                        totalCost += item.price * quantity;
-                    }
-
-                    return {
-                        clientId: clientId,
-                        clientName: clientName,
-                        distributorId: assignedDistributor.id,
-                        distributorName: assignedDistributor.name,
-                        totalCost: parseFloat(totalCost.toFixed(2)),
-                        items: items,
-                        status: status,
-                        createdAt: new Date(Date.now() - (i * 3600000)).toISOString(),
-                    };
-                };
-
-                // 1. Generate TARGET_RANDOM_ORDERS (75)
-                for (let i = 1; i <= TARGET_RANDOM_ORDERS; i++) {
-                    mockOrders.push(createRandomOrder(i));
-                }
-                
-                // 2. Generate TARGET_CLIENT_ORDERS (12) explicitly for the current user
-                for (let i = 1; i <= TARGET_CLIENT_ORDERS; i++) {
-                    // Start the index higher to ensure different mock orders than the initial 75
-                    mockOrders.push(createRandomOrder(TARGET_RANDOM_ORDERS + i, userId)); 
-                }
-
-                for (const order of mockOrders) {
-                    await addDoc(ordersRef, order);
-                }
-                notify(`Initial ${TARGET_RANDOM_ORDERS + TARGET_CLIENT_ORDERS} Orders seeded (including ${TARGET_CLIENT_ORDERS} for the current client).`);
-            }
-        };
-
-        // --- Component Rendering Functions (Vanilla JS) ---
-
-        const renderSidebar = () => {
-            const sidebar = document.getElementById('sidebar');
-            if (!sidebar) return;
-
-            const isCollapsed = !appState.isSidebarOpen;
-            
-            // Set main container class
-            sidebar.classList.toggle('w-64', !isCollapsed);
-            sidebar.classList.toggle('w-20', isCollapsed);
-            sidebar.classList.toggle('sidebar-collapsed', isCollapsed);
-
-            const views = VIEWS[appState.currentRole];
-            let navHtml = views.map(view => {
-                const isActive = appState.currentView === view.id;
-                const activeClasses = 'bg-indigo-600 text-white shadow-md';
-                const inactiveClasses = 'text-gray-600 hover:bg-gray-100 hover:text-indigo-600';
-
-                return `
-                    <button id="view-${view.id}" onclick="window.setCurrentView('${view.id}')"
-                        class="w-full flex items-center py-3 px-3 rounded-lg transition duration-150 ${isActive ? activeClasses : inactiveClasses}">
-                        ${view.icon}
-                        <span class="ml-3 font-medium whitespace-nowrap sidebar-item-text ${isCollapsed ? 'opacity-0 hidden' : 'opacity-100'}">
-                            ${view.name}
-                        </span>
-                    </button>
-                `;
-            }).join('');
-            
-            const menuIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-menu"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>';
-
-            const headerHtml = `
-                <div class="p-4 border-b border-indigo-100 flex items-center justify-between h-16">
-                    <h1 class="text-xl font-extrabold text-indigo-700 transition-opacity duration-150 ${isCollapsed ? 'opacity-0 hidden' : 'opacity-100'}">
-                        GMG Hub
-                    </h1>
-                    <button onclick="window.toggleSidebar()" class="p-2 rounded-full text-indigo-600 hover:bg-indigo-50 transition">
-                        ${menuIcon}
-                    </button>
-                </div>
-            `;
-            
-            const footerHtml = `
-                <div class="absolute bottom-4 left-0 w-full p-4">
-                    <p class="text-xs text-gray-400 truncate ${isCollapsed ? 'hidden' : 'ml-0'}">User ID: ${userId || 'Initializing...'}</p>
-                </div>
-            `;
-
-            sidebar.innerHTML = `
-                ${headerHtml}
-                <nav class="p-2 space-y-2">
-                    ${navHtml}
-                </nav>
-                ${footerHtml}
-            `;
-        };
-
-        const renderHeader = () => {
-            const header = document.getElementById('main-header');
-            if (!header) return;
-
-            const roleOptions = Object.entries(ROLE_MAP).map(([key, value]) => 
-                `<option value="${key}" ${appState.currentRole === key ? 'selected' : ''}>${value}</option>`
-            ).join('');
-
-            header.innerHTML = `
-                <p class="font-semibold text-gray-700 mr-2 text-sm">Role:</p>
-                <select id="role-selector" onchange="window.setCurrentRole(this.value)"
-                    class="p-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition text-sm">
-                    ${roleOptions}
-                </select>
-            `;
-        };
-
-        // Expose renderLayout to the window scope
-        window.renderLayout = () => {
-            const appContainer = document.getElementById('app-container');
-            if (!appContainer) return;
-            
-            const sidebarWidthClass = appState.isSidebarOpen ? 'ml-64' : 'ml-20';
-            const mainContentClass = appState.isSidebarOpen ? 'main-content-open' : 'main-content-closed';
-
-            // Render the layout shell
-            appContainer.innerHTML = `
-                <!-- Sidebar -->
-                <div id="sidebar" class="fixed top-0 left-0 h-full bg-white transition-all duration-300 shadow-xl z-20 w-64"></div>
-
-                <!-- Fixed Header/Role Selector -->
-                <div id="main-header" class="fixed top-0 right-0 bg-white shadow-md z-30 p-4 flex justify-end items-center h-16 transition-all duration-300 ${sidebarWidthClass} w-auto"></div>
-
-                <!-- Main Content Area -->
-                <main id="main-content" class="p-4 sm:p-8 pt-20 transition-all duration-300 min-h-screen ${mainContentClass}">
-                    <h1 id="view-title" class="text-3xl font-extrabold text-gray-800 mb-6 border-b pb-2"></h1>
-                    <div id="view-content"></div>
-                </main>
-            `;
-            
-            // Initial content render
-            renderSidebar();
-            renderHeader();
-            renderContent();
-        };
-
-        const renderContent = () => {
-            const contentDiv = document.getElementById('view-content');
-            const titleElement = document.getElementById('view-title');
-            if (!contentDiv || !titleElement) return;
-
-            const viewMeta = VIEWS[appState.currentRole].find(v => v.id === appState.currentView);
-            titleElement.textContent = viewMeta ? viewMeta.name : 'Dashboard';
-
-            switch (appState.currentRole) {
-                case 'GMG_ADMIN':
-                    switch (appState.currentView) {
-                        case 'Dashboard': renderGMGAdminDashboard(contentDiv); break;
-                        case 'DistributorManagement': renderDistributorManagement(contentDiv); break;
-                        case 'InventoryManagement': renderInventoryManagement(contentDiv); break;
-                        case 'OrderOverview': renderOrderOverview(contentDiv); break;
-                        default: renderGMGAdminDashboard(contentDiv);
-                    }
-                    break;
-                case 'CLIENT':
-                    switch (appState.currentView) {
-                        case 'Dashboard': renderClientDashboard(contentDiv); break;
-                        case 'ProductCatalog': renderProductCatalog(contentDiv); break;
-                        case 'MyOrders': renderMyOrders(contentDiv); break;
-                        default: renderClientDashboard(contentDiv);
-                    }
-                    break;
-                case 'DISTRIBUTOR':
-                    switch (appState.currentView) {
-                        case 'Dashboard': renderDistributorDashboard(contentDiv); break;
-                        case 'Fulfillment': renderFulfillment(contentDiv); break;
-                        case 'CreditStatus': renderCreditStatus(contentDiv); break;
-                        default: renderDistributorDashboard(contentDiv);
-                    }
-                    break;
-                default:
-                    contentDiv.innerHTML = '<p class="text-center text-xl text-gray-600">Select a role to begin.</p>';
-            }
-        };
-
-        // --- Shared Helper Renders ---
-
-        const renderCard = (title, value, icon, colorClass = 'bg-indigo-500') => `
-            <div class="p-5 rounded-xl shadow-lg flex items-center justify-between ${colorClass}">
-                <div>
-                    <p class="text-sm font-medium text-white opacity-80">${title}</p>
-                    <p class="text-3xl font-bold text-white mt-1">${value}</p>
-                </div>
-                <div class="w-8 h-8 text-white opacity-60">${icon}</div>
-            </div>
-        `;
-
-        const renderOrderDetailList = (order) => {
-            const itemsHtml = order.items.map((item, index) => `
-                <div class="flex justify-between text-sm text-gray-800">
-                    <span class="truncate">${item.name} (${item.sku})</span>
-                    <span class="font-medium whitespace-nowrap">${item.quantity} x ${item.price.toFixed(2)} AED</span>
-                </div>
-            `).join('');
-
-            return `
-                <div class="mt-3 p-3 bg-gray-50 border border-gray-200 rounded-lg">
-                    <p class="text-xs font-semibold uppercase text-gray-600 mb-2">Order Line Items:</p>
-                    <div class="space-y-1">${itemsHtml}</div>
-                    <div class="pt-2 mt-2 border-t font-bold flex justify-between">
-                        <span>Total:</span>
-                        <span>${order.totalCost.toFixed(2)} AED</span>
-                    </div>
-                </div>
-            `;
-        };
-
-        // --- GMG Admin View Renders ---
-
-        const renderDistributorManagement = (container) => {
-            let tableRows = '';
-            if (appState.distributors.length === 0) {
-                tableRows = '<tr><td colspan="5" class="px-6 py-4 text-sm text-gray-500 text-center">No distributors onboarded yet.</td></tr>';
-            } else {
-                tableRows = appState.distributors.map(dist => `
-                    <tr key="${dist.id}">
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${dist.name}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-indigo-600 hover:text-indigo-800">
-                            <a href="mailto:${dist.contact}" class="transition duration-150">${dist.contact}</a>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${dist.maxCredit.toFixed(2)} AED</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm">
-                            <span class="font-bold ${dist.currentCredit < dist.maxCredit * 0.2 ? 'text-red-500' : 'text-green-600'}">
-                                ${dist.currentCredit.toFixed(2)} AED
-                            </span>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            <button onclick="window.openDistributorModal('${dist.id}')" class="text-indigo-600 hover:text-indigo-900 transition">
-                                Edit / Manage Credit
-                            </button>
-                        </td>
-                    </tr>
-                `).join('');
-            }
-
-            container.innerHTML = `
-                <div class="bg-white p-6 rounded-xl shadow-lg">
-                    <div class="flex justify-between items-center mb-4">
-                        <h2 class="text-2xl font-semibold text-gray-800 flex items-center">${getIcon(VIEWS.GMG_ADMIN[1].icon)} <span class="ml-2">Distributor Management</span></h2>
-                        <button onclick="window.openDistributorModal(null)" class="flex items-center px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition">
-                            Onboard New
-                        </button>
-                    </div>
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200">
-                            <thead class="bg-gray-50">
-                                <tr>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Distributor</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Max Credit (AED)</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Available Credit (AED)</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody class="bg-white divide-y divide-gray-200">${tableRows}</tbody>
-                        </table>
-                    </div>
-                    <div id="distributor-modal-container"></div>
-                </div>
-            `;
-        };
-        
-        window.openDistributorModal = (distId) => {
-            const dist = distId ? appState.distributors.find(d => d.id === distId) : null;
-            const modalContainer = document.getElementById('distributor-modal-container');
-            if (!modalContainer) return;
-
-            const name = dist?.name || '';
-            const contact = dist?.contact || '';
-            const maxCredit = dist?.maxCredit || 0;
-            const currentCredit = dist?.currentCredit || (dist?.maxCredit || 0);
-
-            modalContainer.innerHTML = `
-                <div class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-                    <div class="bg-white p-6 rounded-xl shadow-2xl w-full max-w-md">
-                        <div class="flex justify-between items-center mb-4">
-                            <h3 class="text-xl font-bold text-gray-800">${dist ? 'Edit Distributor & Credit' : 'Onboard New Distributor'}</h3>
-                            <button onclick="window.closeDistributorModal()" class="text-gray-400 hover:text-red-600">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-x"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-                            </button>
-                        </div>
-                        <form id="distributor-form" class="space-y-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700">Name</label>
-                                <input type="text" name="name" value="${name}" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border" />
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700">Contact Email/Phone</label>
-                                <input type="text" name="contact" value="${contact}" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border" />
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700">Max Credit Line (AED)</label>
-                                <input type="number" step="0.01" min="0" name="maxCredit" value="${maxCredit}" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border" />
-                            </div>
-                            ${dist ? `
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700">Current Available Credit (AED)</label>
-                                    <input type="number" step="0.01" name="currentCredit" value="${currentCredit}" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border" />
-                                    <p class="text-xs text-gray-500 mt-1">Adjusting this refills or uses up current credit. Max is ${maxCredit.toFixed(2)} AED.</p>
-                                </div>
-                            ` : ''}
-                            <div class="pt-4 flex justify-end">
-                                <button type="submit" class="px-4 py-2 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition duration-150">
-                                    ${dist ? 'Update Credit & Info' : 'Onboard Distributor'}
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            `;
-
-            document.getElementById('distributor-form').addEventListener('submit', (e) => {
-                e.preventDefault();
-                const formData = new FormData(e.target);
-                const data = {
-                    id: dist?.id,
-                    name: formData.get('name'),
-                    contact: formData.get('contact'),
-                    maxCredit: parseFloat(formData.get('maxCredit')),
-                    currentCredit: dist ? parseFloat(formData.get('currentCredit')) : parseFloat(formData.get('maxCredit')),
-                };
-                addUpdateDistributor(data);
-                window.closeDistributorModal();
-            });
-        };
-
-        window.closeDistributorModal = () => {
-            document.getElementById('distributor-modal-container').innerHTML = '';
-        };
-        
-        const renderInventoryManagement = (container) => {
-            const tableRows = appState.inventory.map(item => {
-                const stockValue = item.stock;
-                const priceValue = item.price;
-                return `
-                    <tr key="${item.id}">
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-600">${item.sku}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${item.name}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.category}</td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <input
-                                type="number"
-                                id="stock-${item.id}"
-                                value="${stockValue}"
-                                onchange="window.handleInventoryChange('${item.id}', 'stock', this.value)"
-                                class="w-20 text-center rounded-md border-gray-300 shadow-sm p-1 border"
-                                min="0"
-                            />
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <input
-                                type="number"
-                                step="0.01"
-                                id="price-${item.id}"
-                                value="${priceValue}"
-                                onchange="window.handleInventoryChange('${item.id}', 'price', this.value)"
-                                class="w-20 text-center rounded-md border-gray-300 shadow-sm p-1 border"
-                                min="0.01"
-                            />
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            <button onclick="window.saveInventoryUpdate('${item.id}')" class="px-3 py-1 bg-indigo-500 text-white rounded-md hover:bg-indigo-600 transition">
-                                Save
-                            </button>
-                        </td>
-                    </tr>
-                `;
-            }).join('');
-
-            container.innerHTML = `
-                <div class="bg-white p-6 rounded-xl shadow-lg">
-                    <h2 class="text-2xl font-semibold text-gray-800 flex items-center mb-4">${getIcon(VIEWS.GMG_ADMIN[2].icon)} <span class="ml-2">SKU & Inventory Management (${appState.inventory.length} SKUs)</span></h2>
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200">
-                            <thead class="bg-gray-50">
-                                <tr>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">SKU</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product Name</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stock</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price (AED)</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
-                                </tr>
-                            </thead>
-                            <tbody class="bg-white divide-y divide-gray-200">${tableRows}</tbody>
-                        </table>
-                    </div>
-                </div>
-            `;
-        };
-
-        // Temporary state for input changes
-        let inventoryChanges = {};
-        
-        window.handleInventoryChange = (itemId, field, value) => {
-            if (!inventoryChanges[itemId]) inventoryChanges[itemId] = {};
-            inventoryChanges[itemId][field] = value;
-        };
-
-        window.saveInventoryUpdate = (itemId) => {
-            const item = appState.inventory.find(i => i.id === itemId);
-            if (!item) return;
-
-            const changes = inventoryChanges[itemId];
-            if (!changes) return;
-
-            const updatedItem = {
-                id: itemId,
-                stock: changes.stock !== undefined ? parseInt(changes.stock, 10) : item.stock,
-                price: changes.price !== undefined ? parseFloat(changes.price) : item.price,
-            };
-            updateInventory(updatedItem);
-        };
-
-        const renderOrderOverview = (container) => {
-            const adminOrders = appState.orders;
-            
-            let ordersHtml = '';
-            if (adminOrders.length === 0) {
-                ordersHtml = '<p class="text-gray-500">No orders placed yet.</p>';
-            } else {
-                ordersHtml = adminOrders.map(order => {
-                    const isExpanded = appState.expandedOrderIds.has(order.id);
-                    const statusClass = getStatusColor(order.status);
-                    const chevron = isExpanded 
-                        ? '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-up w-5 h-5 text-indigo-600"><path d="m18 15-6-6-6 6"/></svg>'
-                        : '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-down w-5 h-5 text-gray-500"><path d="m6 9 6 6 6-6"/></svg>';
-
-                    return `
-                        <div class="border rounded-lg shadow-sm">
-                            <div 
-                                class="p-4 flex justify-between items-center cursor-pointer transition duration-150 ${isExpanded ? 'bg-indigo-50' : 'hover:bg-gray-50'}"
-                                onclick="window.toggleOrderDetails('${order.id}')"
-                            >
-                                <div class="flex-1 min-w-0">
-                                    <div class="flex items-center space-x-2">
-                                        <p class="text-gray-900 font-bold truncate">Order ID: ${order.id.substring(0, 8)}...</p>
-                                        <span class="px-2 py-0.5 text-xs font-semibold rounded-full border ${statusClass}">
-                                            ${order.status}
-                                        </span>
-                                    </div>
-                                    <p class="text-sm text-gray-600 mt-1 truncate">Client: ${order.clientName} | Distributor: ${order.distributorName}</p>
-                                </div>
-                                <div class="flex items-center space-x-4">
-                                    <p class="text-lg font-extrabold text-indigo-600 whitespace-nowrap">${order.totalCost.toFixed(2)} AED</p>
-                                    ${chevron}
-                                </div>
-                            </div>
-                            ${isExpanded ? renderOrderDetailList(order) : ''}
-                        </div>
-                    `;
-                }).join('');
-            }
-
-            container.innerHTML = `
-                <div class="bg-white p-6 rounded-xl shadow-lg">
-                    <h2 class="text-2xl font-semibold text-gray-800 flex items-center mb-4">${getIcon(VIEWS.GMG_ADMIN[3].icon)} <span class="ml-2">All Orders Overview</span></h2>
-                    <div class="space-y-4">
-                        ${ordersHtml}
-                    </div>
-                </div>
-            `;
-        };
-
-        const renderGMGAdminDashboard = (container) => {
-            const totalDistributors = appState.distributors.length;
-            const totalSkus = appState.inventory.length;
-            const totalCredit = appState.distributors.reduce((sum, d) => sum + d.maxCredit, 0);
-            const currentCredit = appState.distributors.reduce((sum, d) => sum + d.currentCredit, 0);
-            const totalInventoryValue = appState.inventory.reduce((sum, item) => sum + (item.price * item.stock), 0);
-            
-            const creditUtilization = totalCredit > 0 ? ((totalCredit - currentCredit) / totalCredit) * 100 : 0;
-            const pendingOrders = appState.orders.filter(o => o.status === 'Pending').length;
-            const fulfilledOrders = appState.orders.filter(o => o.status === 'Fulfilled').length;
-            const shippedOrders = appState.orders.filter(o => o.status === 'Shipped').length;
-            const cancelledOrders = appState.orders.filter(o => o.status === 'Cancelled').length;
-            
-            const usersIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-users"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>';
-            const packageIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-package"><path d="m7.5 4.27 9 5.15"/><path d="m21 16.6V9a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 9v7.6"/><path d="M3 17a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4a2 2 0 0 0 1-1.73"/><path d="m12 22 0-10"/><path d="M15 9.47 12 11 9 9.47"/></svg>';
-            const clockIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-clock"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>';
-            const dollarSignIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-dollar-sign"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>';
-            const shoppingCartIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-shopping-cart"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.72a2 2 0 0 0 2-1.58L23 6H6"/></svg>';
-
-
-            container.innerHTML = `
-                <div class="space-y-6">
-                    <h1 class="text-3xl font-extrabold text-indigo-800">GMG Global Operations Dashboard</h1>
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                        ${renderCard("Total Distributors", totalDistributors, usersIcon, "bg-indigo-600")}
-                        ${renderCard("Total SKUs Managed", totalSkus, packageIcon, "bg-green-600")}
-                        ${renderCard("Pending Orders", pendingOrders, clockIcon, "bg-yellow-600")}
-                        ${renderCard("Total Inventory Value", `${totalInventoryValue.toLocaleString(undefined, { maximumFractionDigits: 0 })} AED`, dollarSignIcon, "bg-red-600")}
-                    </div>
-
-                    <!-- Analytical Dashlets -->
-                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 pt-4">
-                        <!-- Credit Utilization Rate -->
-                        <div class="lg:col-span-1 bg-white p-6 rounded-xl shadow-lg border-t-4 border-indigo-500">
-                            <h3 class="text-xl font-semibold text-gray-800 mb-4">Credit Utilization Rate</h3>
-                            <div class="space-y-2">
-                                <p class="text-3xl font-bold text-indigo-700">${creditUtilization.toFixed(1)}%</p>
-                                <div class="w-full bg-gray-200 rounded-full h-4">
-                                    <div
-                                        class="h-4 rounded-full transition-all duration-500 ${creditUtilization > 75 ? 'bg-red-500' : creditUtilization > 50 ? 'bg-yellow-500' : 'bg-green-500'}"
-                                        style="width: ${creditUtilization}%"
-                                    ></div>
-                                </div>
-                                <p class="text-sm text-gray-500 pt-2">Total Credit Allocated: ${totalCredit.toLocaleString(undefined, { maximumFractionDigits: 0 })} AED</p>
-                                <p class="text-sm text-gray-500">Total Credit Available: ${currentCredit.toLocaleString(undefined, { maximumFractionDigits: 0 })} AED</p>
-                            </div>
-                        </div>
-
-                        <!-- Order Status Breakdown -->
-                        <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-lg border-t-4 border-yellow-500">
-                            <h3 class="text-xl font-semibold text-gray-800 mb-4">Global Order Status Breakdown</h3>
-                            <div class="grid grid-cols-4 gap-4 text-center">
-                                <div class="p-3 rounded-lg bg-yellow-50">
-                                    <p class="text-2xl font-bold text-yellow-800">${pendingOrders}</p>
-                                    <p class="text-sm text-yellow-600">Pending</p>
-                                </div>
-                                <div class="p-3 rounded-lg bg-green-50">
-                                    <p class="text-2xl font-bold text-green-800">${fulfilledOrders}</p>
-                                    <p class="text-sm text-green-600">Fulfilled</p>
-                                </div>
-                                <div class="p-3 rounded-lg bg-blue-50">
-                                    <p class="text-2xl font-bold text-blue-800">${shippedOrders}</p>
-                                    <p class="text-sm text-blue-600">Shipped</p>
-                                </div>
-                                <div class="p-3 rounded-lg bg-red-50">
-                                    <p class="text-2xl font-bold text-red-800">${cancelledOrders}</p>
-                                    <p class="text-sm text-red-600">Cancelled</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <h2 class="text-2xl font-semibold text-gray-800 pt-4">Quick Links</h2>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                        <button
-                            onclick="window.setCurrentView('DistributorManagement')"
-                            class="p-4 bg-white rounded-xl shadow-md hover:shadow-lg transition flex items-center justify-between border-l-4 border-indigo-500"
-                        >
-                            <span class="font-medium text-gray-700">Manage Distributors</span>
-                            <div class="text-indigo-500">${usersIcon}</div>
-                        </button>
-                        <button
-                            onclick="window.setCurrentView('InventoryManagement')"
-                            class="p-4 bg-white rounded-xl shadow-md hover:shadow-lg transition flex items-center justify-between border-l-4 border-green-500"
-                        >
-                            <span class="font-medium text-gray-700">Update Master Inventory</span>
-                            <div class="text-green-500">${packageIcon}</div>
-                        </button>
-                        <button
-                            onclick="window.setCurrentView('OrderOverview')"
-                            class="p-4 bg-white rounded-xl shadow-md hover:shadow-lg transition flex items-center justify-between border-l-4 border-yellow-500"
-                        >
-                            <span class="font-medium text-gray-700">Review All Orders</span>
-                            <div class="text-yellow-500">${shoppingCartIcon}</div>
-                        </button>
-                    </div>
-                </div>
-            `;
-        };
-
-        // --- Client View Renders ---
-
-        const renderProductCatalog = (container) => {
-            const cartItems = Object.entries(appState.cart).map(([sku, quantity]) => {
-                const item = appState.inventory.find(i => i.sku === sku);
-                return item ? { ...item, quantity } : null;
-            }).filter(Boolean);
-
-            const totalCost = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
-
-            const cartHtml = cartItems.map(item => `
-                <div class="flex justify-between items-center border-b pb-2">
-                    <p class="text-gray-800">${item.name} x ${item.quantity}</p>
-                    <p class="font-bold text-gray-900">(${(item.price * item.quantity).toFixed(2)} AED)</p>
-                </div>
-            `).join('');
-            
-            const zapIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-zap"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>';
-            
-            const productCards = appState.inventory.map(item => `
-                <div class="p-4 border rounded-lg shadow-sm hover:shadow-md transition">
-                    <p class="text-lg font-bold text-gray-900">${item.name}</p>
-                    <p class="text-sm text-gray-500 mb-2">${item.category} | SKU: ${item.sku}</p>
-                    <p class="text-xl font-extrabold text-green-600 mb-2">${item.price.toFixed(2)} AED</p>
-                    <p class="text-xs font-semibold ${item.stock < 50 ? 'text-red-500' : 'text-green-500'}">
-                        Stock: ${item.stock} in warehouse
-                    </p>
-                    <div class="flex items-center mt-3 space-x-2">
-                        <input
-                            type="number"
-                            min="0"
-                            max="${item.stock}"
-                            value="${appState.cart[item.sku] || 0}"
-                            onchange="window.updateCart('${item.sku}', this.value)"
-                            class="w-16 p-1 border rounded-md text-center"
-                        />
-                        <button
-                            onclick="window.updateCart('${item.sku}', (parseInt(document.querySelector('#product-catalog input[id*="sku-input-${item.sku}"]').value) || 0) + 1)"
-                            ${item.stock <= (appState.cart[item.sku] || 0) ? 'disabled' : ''}
-                            class="px-3 py-1 bg-indigo-500 text-white rounded-md hover:bg-indigo-600 disabled:bg-gray-400 transition"
-                        >
-                            Add
-                        </button>
-                    </div>
-                </div>
-            `).join('');
-
-            container.innerHTML = `
-                <div class="space-y-6" id="product-catalog">
-                    <div class="bg-indigo-50 p-6 rounded-xl shadow-lg">
-                        <h2 class="text-2xl font-semibold text-indigo-800 mb-4 flex items-center">${getIcon(zapIcon)} <span class="ml-2">Current Order Cart</span></h2>
-                        ${cartItems.length === 0 ? `
-                            <p class="text-indigo-600">Your cart is empty. Add some products!</p>
-                        ` : `
-                            <div class="space-y-3">
-                                ${cartHtml}
-                                <div class="flex justify-between items-center pt-3 border-t-2 border-indigo-200">
-                                    <p class="text-xl font-bold text-indigo-800">Order Total:</p>
-                                    <p class="text-2xl font-extrabold text-indigo-600">${totalCost.toFixed(2)} AED</p>
-                                </div>
-                                <button
-                                    onclick="window.handlePlaceOrder()"
-                                    class="w-full py-3 mt-4 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 transition"
-                                    ${appState.distributors.length === 0 ? 'disabled' : ''}
-                                >
-                                    Place Order
-                                </button>
-                            </div>
-                        `}
-                    </div>
-
-                    <div class="bg-white p-6 rounded-xl shadow-lg">
-                        <h2 class="text-2xl font-semibold text-gray-800 mb-4">Browse Products</h2>
-                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                            ${productCards}
-                        </div>
-                    </div>
-                </div>
-            `;
-        };
-        
-        window.updateCart = (sku, quantity) => {
-            const parsedQuantity = parseInt(quantity, 10);
-            if (parsedQuantity > 0) {
-                appState.cart[sku] = parsedQuantity;
-            } else {
-                delete appState.cart[sku];
-            }
-            renderContent(); // Re-render to update cart summary and product controls
-        };
-        
-        window.handlePlaceOrder = () => {
-            const cartItems = Object.entries(appState.cart).map(([sku, quantity]) => {
-                const item = appState.inventory.find(i => i.sku === sku);
-                return item ? { sku: item.sku, name: item.name, quantity: quantity, price: item.price } : null;
-            }).filter(Boolean);
-
-            if (cartItems.length === 0) {
-                notify("Your cart is empty!");
-                return;
-            }
-            placeNewOrder({ items: cartItems });
-            appState.cart = {};
-            renderContent();
-        };
-
-        const renderMyOrders = (container) => {
-            const clientOrders = appState.orders.filter(o => o.clientId === userId);
-            
-            let ordersHtml = '';
-            if (clientOrders.length === 0) {
-                ordersHtml = '<p class="text-gray-500">You have no past orders. Place an order in the Product Catalog.</p>';
-            } else {
-                ordersHtml = clientOrders.map(order => {
-                    const isExpanded = appState.expandedOrderIds.has(order.id);
-                    const statusClass = getStatusColor(order.status);
-                    const chevron = isExpanded 
-                        ? '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-up w-5 h-5 text-indigo-600"><path d="m18 15-6-6-6 6"/></svg>'
-                        : '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-down w-5 h-5 text-gray-500"><path d="m6 9 6 6 6-6"/></svg>';
-                    
-                    const truckIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-truck"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M19 18H9"/><path d="m14 9 4 4 4-4"/><path d="M5 18v2"/><path d="M19 18v2"/><circle cx="17" cy="18" r="2"/></svg>';
-
-
-                    return `
-                        <div class="border rounded-lg shadow-sm">
-                            <div 
-                                class="p-4 flex justify-between items-center cursor-pointer transition duration-150 ${isExpanded ? 'bg-indigo-50' : 'hover:bg-gray-50'}"
-                                onclick="window.toggleOrderDetails('${order.id}')"
-                            >
-                                <div class="flex-1 min-w-0">
-                                    <div class="flex items-center space-x-2">
-                                        <p class="text-gray-900 font-bold truncate">Order ID: ${order.id.substring(0, 8)}...</p>
-                                        <span class="px-2 py-0.5 text-xs font-semibold rounded-full border ${statusClass}">
-                                            ${order.status}
-                                        </span>
-                                    </div>
-                                    <p class="text-sm text-gray-600 mt-1 truncate">Distributor: ${order.distributorName} | Items: ${order.items.length}</p>
-                                </div>
-                                <div class="flex items-center space-x-4">
-                                    <p class="text-lg font-extrabold text-indigo-600 whitespace-nowrap">${order.totalCost.toFixed(2)} AED</p>
-                                    ${chevron}
-                                </div>
-                            </div>
-                            ${isExpanded ? renderOrderDetailList(order) : ''}
-                        </div>
-                    `;
-                }).join('');
-            }
-
-            container.innerHTML = `
-                <div class="bg-white p-6 rounded-xl shadow-lg">
-                    <h2 class="text-2xl font-semibold text-gray-800 mb-4">${getIcon(VIEWS.CLIENT[2].icon)} <span class="ml-2">My Orders History</span></h2>
-                    <div class="space-y-4">
-                        ${ordersHtml}
-                    </div>
-                </div>
-            `;
-        };
-
-        const renderClientDashboard = (container) => {
-            const clientOrders = appState.orders.filter(o => o.clientId === userId);
-            const pendingCount = clientOrders.filter(o => o.status === 'Pending').length;
-            const shippedCount = clientOrders.filter(o => o.status === 'Shipped').length;
-            const totalSpent = clientOrders.reduce((sum, o) => sum + o.totalCost, 0);
-            const totalProducts = appState.inventory.length;
-            const totalOrders = clientOrders.length;
-            const aov = totalOrders > 0 ? (totalSpent / totalOrders) : 0;
-            
-            // Category Breakdown (Simple aggregation for prototype)
-            const categoryCounts = clientOrders.flatMap(o => o.items)
-                .reduce((acc, item) => {
-                    const skuItem = appState.inventory.find(i => i.sku === item.sku);
-                    const category = skuItem ? skuItem.category : 'Unknown';
-                    acc[category] = (acc[category] || 0) + item.quantity;
-                    return acc;
-                }, {});
-
-            const categoryHtml = Object.entries(categoryCounts)
-                .sort(([, a], [, b]) => b - a)
-                .map(([category, count]) => `
-                    <div class="flex justify-between text-gray-700">
-                        <span>${category}</span>
-                        <span class="font-semibold">${count} units</span>
-                    </div>
-                `).join('');
-                
-            const dollarSignIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-dollar-sign"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>';
-            const walletIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-wallet"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h12a2 2 0 0 1 0 4H5a2 2 0 0 0 0 4h12a2 2 0 0 0 2-2v-3"/><path d="M15 7h1v4h-1"/></svg>';
-            const clockIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-clock"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>';
-            const checkCircleIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-check-circle"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 22 3-3"/><path d="m9 12 3 3 5-5"/></svg>';
-            const packageIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-package"><path d="m7.5 4.27 9 5.15"/><path d="m21 16.6V9a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 9v7.6"/><path d="M3 17a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4a2 2 0 0 0 1-1.73"/><path d="m12 22 0-10"/><path d="M15 9.47 12 11 9 9.47"/></svg>';
-            const shoppingCartIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-shopping-cart"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.72a2 2 0 0 0 2-1.58L23 6H6"/></svg>';
-            const truckIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-truck"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M19 18H9"/><path d="m14 9 4 4 4-4"/><path d="M5 18v2"/><path d="M19 18v2"/><circle cx="17" cy="18" r="2"/></svg>';
-
-
-            container.innerHTML = `
-                <div class="space-y-6">
-                    <h1 class="text-3xl font-extrabold text-indigo-800">Client Procurement Dashboard</h1>
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                        ${renderCard("Total Spent YTD", `${totalSpent.toFixed(2)} AED`, dollarSignIcon, "bg-indigo-600")}
-                        ${renderCard("Average Order Value", `${aov.toFixed(2)} AED`, walletIcon, "bg-purple-600")}
-                        ${renderCard("Orders Pending", pendingCount, clockIcon, "bg-yellow-600")}
-                        ${renderCard("Orders Shipped", shippedCount, checkCircleIcon, "bg-blue-600")}
-                    </div>
-
-                    <!-- Analytical Dashlets -->
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-4">
-                        <!-- Product Catalog Size -->
-                        <div class="bg-white p-6 rounded-xl shadow-lg border-t-4 border-green-500">
-                            <h3 class="text-xl font-semibold text-gray-800 mb-4">Product Catalog Size</h3>
-                            <div class="flex items-center space-x-4">
-                                <div class="text-green-600 w-12 h-12">${packageIcon}</div>
-                                <div>
-                                    <p class="text-3xl font-bold text-green-700">${totalProducts}</p>
-                                    <p class="text-sm text-gray-500">Total SKUs available for purchase.</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Product Category Breakdown -->
-                        <div class="bg-white p-6 rounded-xl shadow-lg border-t-4 border-yellow-500">
-                            <h3 class="text-xl font-semibold text-gray-800 mb-4">Product Category Demand (Units Ordered)</h3>
-                            <div class="space-y-2">
-                                ${categoryHtml || '<p class="text-gray-500">No orders placed to generate breakdown.</p>'}
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <h2 class="text-2xl font-semibold text-gray-800 pt-4">Quick Links</h2>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <button
-                            onclick="window.setCurrentView('ProductCatalog')"
-                            class="p-6 bg-white rounded-xl shadow-md hover:shadow-lg transition flex items-center justify-between border-b-4 border-indigo-500"
-                        >
-                            <span class="text-xl font-medium text-gray-700">Browse Catalog & Place Order</span>
-                            <div class="text-indigo-500">${getIcon(VIEWS.CLIENT[1].icon)}</div>
-                        </button>
-                        <button
-                            onclick="window.setCurrentView('MyOrders')"
-                            class="p-6 bg-white rounded-xl shadow-md hover:shadow-lg transition flex items-center justify-between border-b-4 border-green-500"
-                        >
-                            <span class="text-xl font-medium text-gray-700">Track My Orders</span>
-                            <div class="text-green-500">${getIcon(VIEWS.CLIENT[2].icon)}</div>
-                        </button>
-                    </div>
-                </div>
-            `;
-        };
-
-        // --- Distributor View Renders ---
-
-        const renderFulfillment = (container) => {
-            const mockDistributor = appState.distributors[0];
-            if (!mockDistributor) {
-                container.innerHTML = '<p class="text-red-600 p-4 bg-red-100 rounded-lg">No distributor is assigned for this session. Please ensure one is configured by the GMG Admin.</p>';
-                return;
-            }
-
-            const assignedOrders = appState.orders.filter(o => o.distributorId === mockDistributor.id);
-            const pendingOrders = assignedOrders.filter(o => o.status === 'Pending');
-            const completedOrders = assignedOrders.filter(o => o.status !== 'Pending');
-
-            const renderOrderBlock = (order, isPending) => {
-                const isExpanded = appState.expandedOrderIds.has(order.id);
-                const statusClass = getStatusColor(order.status);
-                const chevron = isExpanded 
-                    ? '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-up w-5 h-5 text-indigo-600"><path d="m18 15-6-6-6 6"/></svg>'
-                    : '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-down w-5 h-5 text-gray-500"><path d="m6 9 6 6 6-6"/></svg>';
-
-                return `
-                    <div class="border rounded-lg shadow-sm ${isPending ? 'border-yellow-300 bg-yellow-50' : ''}">
-                        <div class="p-4 flex justify-between items-center cursor-pointer" onclick="window.toggleOrderDetails('${order.id}')">
-                            <div>
-                                <p class="font-bold text-gray-900">Order ID: ${order.id.substring(0, 8)}...</p>
-                                <p class="text-lg font-extrabold text-indigo-600 my-1">Total: ${order.totalCost.toFixed(2)} AED</p>
-                                ${isPending ? `<p class="text-sm text-gray-600">Client: ${order.clientName}</p>` : `<span class="px-2 py-0.5 text-xs font-semibold rounded-full border ${statusClass}">${order.status}</span>`}
-                            </div>
-                            <div class="flex items-center space-x-3">
-                                ${!isPending && order.status === 'Fulfilled' ? `
-                                    <button
-                                        onclick="event.stopPropagation(); window.handleFulfillOrder('${order.id}', 'Shipped')"
-                                        class="py-1 px-3 bg-blue-500 text-white rounded-md text-sm hover:bg-blue-600 transition"
-                                    >
-                                        Mark as Shipped
-                                    </button>
-                                ` : ''}
-                                ${chevron}
-                            </div>
-                        </div>
-
-                        ${isExpanded ? renderOrderDetailList(order) : ''}
-                        
-                        ${isPending ? `
-                            <div class="mt-4 flex space-x-2 border-t pt-3 p-4">
-                                <button
-                                    onclick="window.handleFulfillOrder('${order.id}', 'Fulfilled')"
-                                    class="flex-1 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
-                                >
-                                    Mark as Fulfilled
-                                </button>
-                                <button
-                                    onclick="window.handleFulfillOrder('${order.id}', 'Cancelled')"
-                                    class="py-2 px-4 bg-red-500 text-white rounded-lg hover:bg-red-600 transition"
-                                >
-                                    Cancel
-                                </button>
-                            </div>
-                        ` : ''}
-                    </div>
-                `;
-            };
-
-            const pendingHtml = pendingOrders.length === 0 
-                ? '<p class="col-span-1 text-gray-500 p-4 border rounded-lg">No new orders requiring fulfillment.</p>'
-                : pendingOrders.map(o => renderOrderBlock(o, true)).join('');
-
-            const completedHtml = completedOrders.map(o => renderOrderBlock(o, false)).join('');
-
-            container.innerHTML = `
-                <div class="space-y-6">
-                    <h2 class="text-2xl font-semibold text-gray-800">Orders Requiring Action (${pendingOrders.length})</h2>
-                    <div class="grid grid-cols-1 gap-4">${pendingHtml}</div>
-
-                    <h2 class="text-2xl font-semibold text-gray-800 pt-4">Completed Orders (${completedOrders.length})</h2>
-                    <div class="space-y-4">${completedHtml}</div>
-                </div>
-            `;
-        };
-        
-        window.handleFulfillOrder = (orderId, newStatus) => {
-            fulfillOrder(orderId, newStatus);
-        };
-
-        const renderCreditStatus = (container) => {
-            const mockDistributor = appState.distributors[0];
-            if (!mockDistributor) {
-                container.innerHTML = '<p class="text-red-600 p-4 bg-red-100 rounded-lg">No distributor is assigned for this session.</p>';
-                return;
-            }
-
-            const usedCredit = mockDistributor.maxCredit - mockDistributor.currentCredit;
-            const usagePercentage = (usedCredit / mockDistributor.maxCredit) * 100;
-            const percentageColor = usagePercentage > 80 ? 'bg-red-500' : usagePercentage > 50 ? 'bg-yellow-500' : 'bg-green-500';
-
-            const dollarSignIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-dollar-sign"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>';
-
-            container.innerHTML = `
-                <div class="bg-white p-6 rounded-xl shadow-lg space-y-6">
-                    <h2 class="text-2xl font-semibold text-gray-800">Credit Line Overview for ${mockDistributor.name}</h2>
-
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        ${renderCard("Maximum Credit Limit", `${mockDistributor.maxCredit.toFixed(2)} AED`, dollarSignIcon, "bg-indigo-600")}
-                        ${renderCard("Available Credit", `${mockDistributor.currentCredit.toFixed(2)} AED`, dollarSignIcon, mockDistributor.currentCredit < mockDistributor.maxCredit * 0.2 ? 'bg-red-600' : 'bg-green-600')}
-                        ${renderCard("Credit Used", `${usedCredit.toFixed(2)} AED`, dollarSignIcon, "bg-yellow-600")}
-                    </div>
-
-                    <div class="space-y-2 pt-4">
-                        <p class="text-lg font-medium text-gray-700">Credit Usage (${usagePercentage.toFixed(1)}%)</p>
-                        <div class="w-full bg-gray-200 rounded-full h-4">
-                            <div
-                                class="h-4 rounded-full transition-all duration-500 ${percentageColor}"
-                                style="width: ${usagePercentage}%"
-                            ></div>
-                        </div>
-                    </div>
-
-                    <p class="text-sm text-gray-500 pt-4">
-                        Orders from Clients will be denied if they exceed the <b>Available Credit</b> line. The GMG Admin can replenish or adjust this credit.
-                    </p>
-                </div>
-            `;
-        };
-
-        const renderDistributorDashboard = (container) => {
-            const mockDistributor = appState.distributors[0];
-            if (!mockDistributor) {
-                container.innerHTML = '<p class="text-red-600 p-4 bg-red-100 rounded-lg">No distributor is assigned for this session. Please ensure one is configured by the GMG Admin.</p>';
-                return;
-            }
-            
-            const assignedOrders = appState.orders.filter(o => o.distributorId === mockDistributor.id);
-            const pendingCount = assignedOrders.filter(o => o.status === 'Pending').length;
-            const shippedCount = assignedOrders.filter(o => o.status === 'Shipped').length;
-            const fulfilledCount = assignedOrders.filter(o => o.status === 'Fulfilled').length;
-            
-            const totalAssignedOrders = assignedOrders.length;
-            const totalRevenueProcessed = assignedOrders
-                .filter(o => o.status === 'Fulfilled' || o.status === 'Shipped')
-                .reduce((sum, o) => sum + o.totalCost, 0);
-            const fulfillmentRate = totalAssignedOrders > 0 
-                ? ((fulfilledCount + shippedCount) / totalAssignedOrders) * 100 
-                : 0;
-            
-            const dollarSignIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-dollar-sign"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>';
-            const clockIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-clock"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>';
-            const checkCircleIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-check-circle"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 22 3-3"/><path d="m9 12 3 3 5-5"/></svg>';
-            const truckIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-truck"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M19 18H9"/><path d="m14 9 4 4 4-4"/><path d="M5 18v2"/><path d="M19 18v2"/><circle cx="17" cy="18" r="2"/></svg>';
-            const trendingUpIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trending-up"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>';
-
-
-            container.innerHTML = `
-                <div class="space-y-6">
-                    <h1 class="text-3xl font-extrabold text-indigo-800">Fulfillment Dashboard: ${mockDistributor.name}</h1>
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                        ${renderCard("Orders to Fulfill", pendingCount, clockIcon, "bg-yellow-600")}
-                        ${renderCard("Completed Shipments", shippedCount, truckIcon, "bg-indigo-600")}
-                        ${renderCard("Available Credit", `${mockDistributor.currentCredit.toFixed(2)} AED`, dollarSignIcon, "bg-green-600")}
-                        ${renderCard("Total Revenue Processed", `${totalRevenueProcessed.toLocaleString(undefined, { maximumFractionDigits: 0 })} AED`, trendingUpIcon, "bg-blue-600")}
-                    </div>
-
-                    <!-- Analytical Dashlets -->
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-4">
-                        <!-- Fulfillment Rate -->
-                        <div class="bg-white p-6 rounded-xl shadow-lg border-t-4 border-yellow-500">
-                            <h3 class="text-xl font-semibold text-gray-800 mb-4">Overall Fulfillment Rate</h3>
-                            <div class="space-y-2">
-                                <p class="text-3xl font-bold text-yellow-700">${fulfillmentRate.toFixed(1)}%</p>
-                                <div class="w-full bg-gray-200 rounded-full h-4">
-                                    <div
-                                        class="h-4 rounded-full transition-all duration-500 ${fulfillmentRate < 70 ? 'bg-red-500' : fulfillmentRate < 90 ? 'bg-yellow-500' : 'bg-green-500'}"
-                                        style="width: ${fulfillmentRate}%"
-                                    ></div>
-                                </div>
-                                <p class="text-sm text-gray-500 pt-2">Total Assigned Orders: ${totalAssignedOrders}</p>
-                                <p class="text-sm text-gray-500">Fulfilled/Shipped Orders: ${fulfilledCount + shippedCount}</p>
-                            </div>
-                        </div>
-
-                        <!-- Quick Links -->
-                        <div class="space-y-4">
-                            <button
-                                onclick="window.setCurrentView('Fulfillment')"
-                                class="w-full p-6 bg-white rounded-xl shadow-md hover:shadow-lg transition flex items-center justify-between border-b-4 border-yellow-500"
-                            >
-                                <span class="text-xl font-medium text-gray-700">Process Pending Orders</span>
-                                <div class="text-yellow-500">${getIcon(VIEWS.DISTRIBUTOR[1].icon)}</div>
-                            </button>
-                            <button
-                                onclick="window.setCurrentView('CreditStatus')"
-                                class="w-full p-6 bg-white rounded-xl shadow-md hover:shadow-lg transition flex items-center justify-between border-b-4 border-green-500"
-                            >
-                                <span class="text-xl font-medium text-gray-700">View Credit Line Details</span>
-                                <div class="text-green-500">${getIcon(VIEWS.DISTRIBUTOR[2].icon)}</div>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            `;
-        };
-
-        // --- Initialization and Listeners ---
-
-        const initApp = async () => {
-            // 1. Render layout immediately to avoid the loading screen
-            renderLayout(); 
-
-            if (Object.keys(firebaseConfig).length === 0) {
-                console.error("Firebase config is missing. Cannot initialize app.");
-                return;
-            }
-
-            try {
-                const app = initializeApp(firebaseConfig);
-                db = getFirestore(app);
-                auth = getAuth(app);
-                
-                const signIn = async () => {
+                    // Sign in anonymously if no user is found and no custom token is available
                     try {
                         if (initialAuthToken) {
                             await signInWithCustomToken(auth, initialAuthToken);
+                            userId = auth.currentUser.uid;
                         } else {
-                            await signInAnonymously(auth);
+                            const anonymousUser = await signInAnonymously(auth);
+                            userId = anonymousUser.user.uid;
                         }
-                    } catch (e) {
-                        console.error("Firebase sign-in failed:", e);
+                    } catch (error) {
+                        console.error("Firebase Auth Error:", error);
+                        showMessage("Authentication Error", "Could not sign into the portal. Check console for details.");
+                        return;
                     }
-                };
-                signIn();
+                }
+                // Displaying the first 8 characters of the UID
+                const userIdDisplay = document.getElementById('user-id-display');
+                if (userIdDisplay) {
+                    userIdDisplay.textContent = userId.substring(0, 8) + '...';
+                }
+                
+                // Initialize Data Listeners ONLY after successful auth
+                initializeDataListeners();
+            });
+        } else {
+            const loadingProducts = document.getElementById('loading-products');
+            if (loadingProducts) {
+                loadingProducts.innerHTML = `<i data-lucide="alert-triangle" class="w-8 h-8 mx-auto text-red-500 mb-2"></i> Firebase configuration not available. Cannot connect to database.`;
+            }
+            showMessage("System Error", "Firebase configuration is missing. Data persistence is unavailable.");
+        }
 
-                onAuthStateChanged(auth, async (user) => {
-                    if (user) {
-                        userId = user.uid;
-                        isAuthReady = true;
-                        
-                        try {
-                            await initializeSKUs();
-                        } catch (e) {
-                             console.error("Error during SKU/data initialization:", e);
-                        }
-                        
-                        setupDataListeners();
-                        // 2. Rerender after data is available
-                        renderLayout(); 
-                    } else {
-                        userId = null;
-                        isAuthReady = true;
-                        renderLayout(); // Still render UI if anonymous sign-in failed, but data might be empty
-                    }
+        // --- FIRESTORE DATA LISTENERS ---
+        const initializeDataListeners = () => {
+            if (!db || !userId) return;
+
+            const distributorDocRef = doc(db, "artifacts", appId, "users", userId, "profile", "data");
+            const productsCollectionRef = collection(db, "artifacts", appId, "public", "data", "products");
+            const ordersCollectionRef = collection(db, "artifacts", appId, "users", userId, "orders");
+
+            // 1. Listen to Distributor Profile (Credit Line)
+            onSnapshot(distributorDocRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    window.distributorProfile = docSnap.data();
+                } else {
+                    // Create a default profile if it doesn't exist
+                    window.distributorProfile = {
+                        creditLimit: 250000,
+                        outstandingBalance: 0,
+                    };
+                    setDoc(distributorDocRef, window.distributorProfile, { merge: true })
+                        .catch(e => console.error("Error setting initial profile:", e));
+                }
+                renderDashboard();
+            }, (error) => {
+                console.error("Error listening to distributor profile:", error);
+            });
+
+            // 2. Listen to Products (Catalog)
+            onSnapshot(productsCollectionRef, (snapshot) => {
+                window.products = [];
+                snapshot.forEach(doc => {
+                    window.products.push({ id: doc.id, ...doc.data() });
                 });
-            } catch (e) {
-                console.error("Firebase initialization failed:", e);
+                renderProductTabs(); // NEW: Render tabs and default product view
+                
+                const loadingEl = document.getElementById('loading-products');
+                if (loadingEl) {
+                    loadingEl.classList.add('hidden');
+                }
+            }, (error) => {
+                console.error("Error listening to products:", error);
+                const loadingEl = document.getElementById('loading-products');
+                if (loadingEl) {
+                    loadingEl.innerHTML = 'Error loading products.';
+                }
+            });
+
+            // 3. Listen to Orders
+            onSnapshot(query(ordersCollectionRef), (snapshot) => {
+                let orders = [];
+                snapshot.forEach(doc => {
+                    orders.push({ id: doc.id, ...doc.data() });
+                });
+                renderOrderHistory(orders);
+            }, (error) => {
+                console.error("Error listening to orders:", error);
+            });
+
+            // Populate mock data if collections are empty (for first-time use)
+            fetchWithRetry(() => initializeMockData(productsCollectionRef, ordersCollectionRef));
+        };
+
+        // --- MOCK DATA INITIALIZATION ---
+        const initializeMockData = async (productsCollectionRef, ordersCollectionRef) => {
+            const productsSnapshot = await getDocs(productsCollectionRef);
+            if (productsSnapshot.empty) {
+                console.log("Populating mock product data.");
+                // Placeholder image for all products
+                const defaultImageUrl = "https://placehold.co/100x100/34D399/FFFFFF/png?text=GMG+Meat";
+                
+                const mockProducts = [
+                    // Added 'unit', 'imageUrl', 'rating' and 'description' fields
+                    { sku: 'BEEF-STEAK-RBY-10KG', name: 'Premium Beef Ribeye Steak (Frozen)', brand: 'GMG Select', type: 'Beef', cut: 'Steak', unit: 'kg', unitPrice: 850.00, inventory: 50, imageUrl: defaultImageUrl, rating: 4.8, description: "Highly marbled, tender Ribeye steak, individually vacuum-sealed and flash-frozen to lock in flavor and freshness. Ideal for high-end restaurants and large catering events." },
+                    { sku: 'LAMB-LOIN-CHLD-5KG', name: 'Chilled Australian Lamb Loin', brand: 'Down Under', type: 'Lamb', cut: 'Loin', unit: 'kg', unitPrice: 520.00, inventory: 80, imageUrl: defaultImageUrl, rating: 4.5, description: "Prime grade, chilled lamb loin sourced from certified Australian farms. Perfect for carving or portioning into individual chops. Delivered fresh, never frozen." },
+                    { sku: 'CHICKEN-GROUND-1KG', name: 'Bulk Ground Chicken Breast (Chilled)', brand: 'PoultryPro', type: 'Chicken', cut: 'Ground', unit: 'kg', unitPrice: 85.00, inventory: 120, imageUrl: defaultImageUrl, rating: 4.2, description: "Lean ground chicken breast, suitable for health-conscious menus and mass preparation. Low fat content and consistently textured for uniform cooking." },
+                    { sku: 'BEEF-TEND-SLCT-1KG', name: 'Wagyu Beef Tenderloin A5', brand: 'Kobe Reserve', type: 'Beef', cut: 'Steak', unit: 'g', unitPrice: 15.00, inventory: 20, imageUrl: defaultImageUrl, rating: 5.0, description: "The pinnacle of beef quality. Genuine A5 Wagyu Tenderloin, known for its extreme tenderness and rich, buttery marbling. Sold by the gram for specialty orders." },
+                    { sku: 'LAMB-SHANK-FRZ-10KG', name: 'Frozen New Zealand Lamb Shank', brand: 'Down Under', type: 'Lamb', cut: 'Loin', unit: 'box', unitPrice: 480.00, inventory: 65, imageUrl: defaultImageUrl, rating: 3.9, description: "Classic New Zealand lamb shanks, bone-in and pre-trimmed. Excellent for slow cooking, braising, or stews. Conveniently packaged in 10kg bulk boxes." },
+                    { sku: 'BEEF-GROUND-8020-5KG', name: '80/20 Lean Ground Beef', brand: 'GMG Select', type: 'Beef', cut: 'Ground', unit: 'kg', unitPrice: 350.00, inventory: 150, imageUrl: defaultImageUrl, rating: 4.1, description: "Standard 80% lean, 20% fat ground beef blend. Versatile for burgers, meatballs, and taco filling. Comes in 5kg vacuum-sealed packs." },
+                    { sku: 'CHICKEN-THIGH-FRZ', name: 'Frozen Chicken Thighs (Bone-in)', brand: 'PoultryPro', type: 'Chicken', cut: 'Thigh', unit: 'piece', unitPrice: 2.50, inventory: 8, imageUrl: defaultImageUrl, rating: 4.6, description: "Individually frozen, bone-in chicken thighs. A cost-effective and flavorful option for large volume cooking. Consistent size for easy portion control." }, 
+                    { sku: 'LAMB-CUBE-CHLD', name: 'Chilled Lamb Diced Cubes', brand: 'Down Under', type: 'Lamb', cut: 'Cube', unit: 'kg', unitPrice: 400.00, inventory: 90, imageUrl: defaultImageUrl, rating: 4.7, description: "Pre-diced, chilled lamb cubes ready for kebabs, curries, or roasting. Saves prep time and ensures uniform cooking size." },
+                    { sku: 'BEEF-FILLET-FRZ-5KG', name: 'Frozen Beef Fillet Whole Muscle', brand: 'GMG Select', type: 'Beef', cut: 'Loin', unit: 'box', unitPrice: 700.00, inventory: 40, imageUrl: defaultImageUrl, rating: 4.9, description: "Whole frozen beef fillet, suitable for slicing into filet mignon or chateaubriand. Excellent quality and value for large volume needs." },
+                ];
+
+                for (const prod of mockProducts) {
+                    await addDoc(productsCollectionRef, prod).catch(e => console.error("Error adding mock product:", e));
+                }
+            }
+
+            // Orders can be populated based on the products. We need to fetch the newly created products first.
+            const updatedProductsSnapshot = await getDocs(productsCollectionRef);
+            const productsMap = {};
+            updatedProductsSnapshot.forEach(doc => {
+                productsMap[doc.id] = { id: doc.id, ...doc.data() };
+            });
+
+            const ordersSnapshot = await getDocs(ordersCollectionRef);
+            if (ordersSnapshot.empty && Object.keys(productsMap).length >= 3) {
+                console.log("Populating mock order data.");
+                
+                const productIds = Object.keys(productsMap);
+                const p1 = productsMap[productIds[0]]; 
+                const p2 = productsMap[productIds[1]]; 
+                const p3 = productsMap[productIds[6]]; 
+
+                const mockOrders = [
+                    // Delivered Order
+                    { 
+                        items: [{...p1, quantity: 2, unit: p1.unit}, {...p3, quantity: 50, unit: p3.unit}], 
+                        totalAmount: (p1.unitPrice * 2) + (p3.unitPrice * 50),
+                        status: 'Delivered',
+                        timestamp: serverTimestamp(),
+                        distributorId: userId
+                    },
+                    // Shipped Order
+                    { 
+                        items: [{...p2, quantity: 3, unit: p2.unit}], 
+                        totalAmount: p2.unitPrice * 3,
+                        status: 'Shipped',
+                        timestamp: serverTimestamp(),
+                        distributorId: userId
+                    },
+                    // Processing Order (Contributes to outstanding balance)
+                    {
+                        items: [{...p1, quantity: 1, unit: p1.unit}, {...p2, quantity: 1, unit: p2.unit}],
+                        totalAmount: p1.unitPrice + p2.unitPrice,
+                        status: 'Processing',
+                        timestamp: serverTimestamp(),
+                        distributorId: userId
+                    }
+                ];
+                
+                let totalOutstanding = 0;
+                for (const order of mockOrders) {
+                    await addDoc(ordersCollectionRef, order).catch(e => console.error("Error adding mock order:", e));
+                    if (order.status === 'Processing' || order.status === 'Shipped') {
+                         totalOutstanding += order.totalAmount;
+                    }
+                }
+                
+                // Update profile with mock outstanding balance from processing/shipped orders
+                const distributorDocRef = doc(db, "artifacts", appId, "users", userId, "profile", "data");
+                await updateDoc(distributorDocRef, {
+                    outstandingBalance: totalOutstanding,
+                    creditLimit: 250000,
+                }).catch(e => console.error("Error setting initial profile balance:", e));
             }
         };
-        
-        const setupDataListeners = () => {
-            if (!isAuthReady || !db || !userId) return;
 
-            // A. Listen to Inventory
-            const inventoryRef = collection(db, getAdminPath('inventory'));
-            onSnapshot(inventoryRef, (snapshot) => {
-                appState.inventory = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                renderContent(); // Rerender affected views
-            }, (error) => console.error("Error listening to Inventory:", error));
+        // --- TAB & FILTER UX LOGIC ---
 
-            // B. Listen to Distributors
-            const distributorRef = collection(db, getAdminPath('distributors'));
-            onSnapshot(distributorRef, (snapshot) => {
-                appState.distributors = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                renderContent(); // Rerender affected views
-            }, (error) => console.error("Error listening to Distributors:", error));
+        // Renders the Meat Type tabs
+        const renderProductTabs = () => {
+            if (window.products.length === 0) return;
 
-            // C. Listen to Orders
-            const ordersRef = collection(db, getPublicPath('orders'));
-            onSnapshot(ordersRef, (snapshot) => {
-                const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                items.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-                appState.orders = items;
-                renderContent(); // Rerender affected views
-            }, (error) => console.error("Error listening to Orders:", error));
+            const uniqueTypes = [...new Set(window.products.map(p => p.type))].sort();
+            const container = document.getElementById('product-tabs-header');
+            
+            if (!container) return; // Guard for safety
+
+            if (!window.activeTab || !uniqueTypes.includes(window.activeTab)) {
+                // Set default tab to the first type if not already set or invalid
+                window.activeTab = uniqueTypes[0];
+            }
+
+            container.innerHTML = uniqueTypes.map(type => {
+                const isActive = type === window.activeTab;
+                return `
+                    <button onclick="switchProductTab('${type}')"
+                            class="product-tab px-4 py-2 text-sm md:text-base border-b-2 border-transparent transition hover:text-emerald-700 hover:border-emerald-300 ${isActive ? 'active-product-tab' : 'text-gray-500'}"
+                            data-type="${type}">
+                        ${type}
+                    </button>
+                `;
+            }).join('');
+            
+            // Now that tabs are rendered, refresh filters and catalog
+            renderFilterCheckboxes();
+            renderProductCatalog();
         };
 
-        // Expose global functions for inline events
-        window.setCurrentRole = setCurrentRole;
-        window.setCurrentView = setCurrentView;
-        window.toggleSidebar = toggleSidebar;
-        window.toggleOrderDetails = toggleOrderDetails;
-        window.renderLayout = renderLayout;
-        // window.renderApp is defined above
-        window.handleInventoryChange = handleInventoryChange;
-        window.saveInventoryUpdate = saveInventoryUpdate;
-        window.openDistributorModal = openDistributorModal;
-        window.closeDistributorModal = closeDistributorModal;
-        window.updateCart = updateCart;
-        window.handlePlaceOrder = handlePlaceOrder;
-        window.handleFulfillOrder = handleFulfillOrder;
+        // Switches the active tab and triggers catalog refresh
+        window.switchProductTab = (type) => {
+            window.activeTab = type;
+            // Clear search and cut filters when switching tabs for a clean slate
+            const searchInput = document.getElementById('search-input');
+            if(searchInput) searchInput.value = '';
+            
+            window.activeFilters.search = '';
+            window.activeFilters.cut = [];
+            
+            // Rerender to update active tab style
+            renderProductTabs(); 
+        };
 
-        // Initialize the app when the module loads
-        initApp();
+
+        // Generates and renders CUT checkboxes only for products in the active tab
+        const renderFilterCheckboxes = () => {
+            const container = document.getElementById('filter-cut-container');
+            if (!container || !window.activeTab) {
+                if(container) container.innerHTML = `<p class="text-gray-400">Select a category...</p>`;
+                return;
+            }
+
+            // Filter products to only include the active type
+            const productsInActiveTab = window.products.filter(p => p.type === window.activeTab);
+            const uniqueCuts = [...new Set(productsInActiveTab.map(p => p.cut))].sort();
+
+            if (uniqueCuts.length === 0) {
+                container.innerHTML = `<p class="text-gray-400">No specific cuts available.</p>`;
+                return;
+            }
+
+            container.innerHTML = uniqueCuts.map(value => {
+                const isChecked = window.activeFilters.cut.includes(value);
+                return `
+                    <div class="flex items-center">
+                        <input id="cut-${value.toLowerCase().replace(/\s/g, '-')}" 
+                            type="checkbox" 
+                            value="${value}" 
+                            onchange="handleFilterChange('cut', '${value}', this.checked)"
+                            ${isChecked ? 'checked' : ''}
+                            class="h-4 w-4 text-emerald-600 border-gray-300 rounded focus:ring-emerald-500">
+                        <label for="cut-${value.toLowerCase().replace(/\s/g, '-')}" 
+                            class="ml-3 text-gray-700 cursor-pointer hover:text-emerald-600 transition">
+                            ${value}
+                        </label>
+                    </div>
+                `;
+            }).join('');
+            
+            lucide.createIcons(); // Re-render icons after DOM update
+        };
+        
+        // Handles filter change (for cuts) and triggers product re-render
+        window.handleFilterChange = (filterName, value, isChecked) => {
+            let filterArray = window.activeFilters[filterName];
+
+            if (isChecked) {
+                if (!filterArray.includes(value)) {
+                    filterArray.push(value);
+                }
+            } else {
+                window.activeFilters[filterName] = filterArray.filter(item => item !== value);
+            }
+            
+            // Re-render product grid immediately
+            renderProductCatalog();
+        };
+
+
+        // --- RENDERING FUNCTIONS ---
+        
+        // Helper function to generate star rating HTML
+        const renderRating = (rating) => {
+            const fullStars = Math.floor(rating);
+            const halfStar = rating % 1 >= 0.25 && rating % 1 <= 0.75;
+            const emptyStars = 5 - fullStars - (halfStar ? 1 : 0);
+            
+            let starsHtml = '';
+            const starClass = "w-4 h-4 fill-yellow-400 text-yellow-400";
+            
+            // Full stars
+            for (let i = 0; i < fullStars; i++) {
+                starsHtml += `<i data-lucide="star" class="${starClass}"></i>`;
+            }
+            // Half star
+            if (halfStar) {
+                starsHtml += `<span class="relative"><i data-lucide="star" class="${starClass}"></i></span>`;
+            }
+            // Empty stars
+            for (let i = 0; i < emptyStars; i++) {
+                starsHtml += `<i data-lucide="star" class="w-4 h-4 text-gray-300"></i>`;
+            }
+
+            return `
+                <div class="flex items-center space-x-0.5 mt-1">
+                    ${starsHtml}
+                    <span class="ml-2 text-sm font-semibold text-gray-700">${rating.toFixed(1)}</span>
+                </div>
+            `;
+        };
+
+
+        // Render individual product card
+        const createProductCard = (product) => {
+            const inCartQuantity = window.cart[product.id] ? window.cart[product.id].quantity : 0;
+            const unitDisplay = product.unit ? `/ ${product.unit}` : '/ unit';
+
+            return `
+                <div id="product-${product.id}" 
+                     onclick="renderProductDetailModal('${product.id}')"
+                     class="bg-white p-4 rounded-xl card-shadow flex flex-col justify-between hover:ring-2 hover:ring-emerald-500 transition-all duration-300 cursor-pointer">
+                    
+                    <div class="flex justify-between items-start mb-3">
+                         <!-- Product Image -->
+                        <div class="w-1/4 flex-shrink-0 mr-3">
+                            <img src="${product.imageUrl}" 
+                                 alt="${product.name}" 
+                                 class="w-full h-auto rounded-lg object-cover border border-gray-100" 
+                                 onerror="this.onerror=null;this.src='https://placehold.co/100x100/A7F3D0/047857?text=No+Image';">
+                        </div>
+                        
+                        <!-- Product Details & Rating -->
+                        <div class="flex-grow">
+                            <span class="text-xs font-semibold px-2 py-0.5 rounded-full text-white bg-emerald-500">${product.type} - ${product.cut}</span>
+                            <h3 class="text-lg font-bold text-gray-800 mt-2 leading-tight">${product.name}</h3>
+                            <p class="text-sm text-gray-500">${product.brand} (SKU: ${product.sku})</p>
+                            ${renderRating(product.rating)}
+                        </div>
+                    </div>
+                    
+                    <div class="flex justify-between items-end mt-2 pt-4 border-t border-gray-100">
+                         <!-- Price -->
+                        <div class="flex-grow">
+                            <p class="text-xl font-extrabold text-emerald-700">${formatCurrency(product.unitPrice)} <span class="text-sm font-normal text-gray-500">${unitDisplay}</span></p>
+                        </div>
+                        
+                        <!-- Quantity Controls -->
+                        <div class="flex flex-col items-end">
+                            <!-- This div stops the card click opening the modal when quantity buttons are pressed -->
+                            <div class="flex items-center space-x-2" onclick="event.stopPropagation()">
+                                <button onclick="updateCart('${product.id}', -1, false)" class="p-1.5 border border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-50 transition" ${inCartQuantity === 0 ? 'disabled' : ''}>
+                                    <i data-lucide="minus" class="w-4 h-4"></i>
+                                </button>
+                                <span class="font-medium text-lg w-8 text-center" id="qty-${product.id}">${inCartQuantity}</span>
+                                <button onclick="updateCart('${product.id}', 1, false)" class="p-1.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition">
+                                    <i data-lucide="plus" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                             ${inCartQuantity > 0 ? `<span class="text-xs text-gray-600 font-medium mt-1">In Cart</span>` : `<span class="text-xs text-gray-400 mt-1">Add to order</span>`}
+                        </div>
+                    </div>
+                </div>
+            `;
+        };
+        
+        // Render the Product Detail Modal
+        window.renderProductDetailModal = (productId) => {
+            const product = window.products.find(p => p.id === productId);
+            const modal = document.getElementById('product-detail-modal');
+            
+            if (!product || !modal) return;
+            
+            const unitDisplay = product.unit ? `/ ${product.unit}` : '/ unit';
+            
+            // Populate content
+            document.getElementById('detail-modal-title').textContent = product.name;
+            document.getElementById('detail-image').src = product.imageUrl;
+            document.getElementById('detail-sku').textContent = product.sku;
+            document.getElementById('detail-brand').textContent = product.brand;
+            document.getElementById('detail-inventory').textContent = `${product.inventory} ${product.unit}s remaining`;
+            document.getElementById('detail-price').textContent = formatCurrency(product.unitPrice);
+            document.getElementById('detail-unit').textContent = unitDisplay;
+            document.getElementById('detail-rating').innerHTML = renderRating(product.rating);
+            document.getElementById('detail-description').textContent = product.description;
+            
+            // Setup quantity controls
+            const qtyInput = document.getElementById('detail-qty-input');
+            if (qtyInput) qtyInput.value = 1; // Reset to 1 every time modal opens
+            
+            const updateDetailQuantity = (change) => {
+                const currentQty = parseInt(qtyInput.value, 10);
+                const newQty = Math.max(1, currentQty + change);
+                qtyInput.value = newQty;
+            };
+
+            const minusBtn = document.getElementById('detail-minus-btn');
+            if (minusBtn) minusBtn.onclick = () => updateDetailQuantity(-1);
+            
+            const plusBtn = document.getElementById('detail-plus-btn');
+            if (plusBtn) plusBtn.onclick = () => updateDetailQuantity(1);
+
+            // Setup Add to Cart button (FIX: Call updateCart with isSetQuantity=true)
+            const addToCartBtn = document.getElementById('detail-add-to-cart-btn');
+            if (addToCartBtn) {
+                addToCartBtn.onclick = () => {
+                    const quantity = parseInt(qtyInput.value, 10);
+                    // Pass the total quantity and indicate it's a bulk set operation
+                    updateCart(productId, quantity, true); 
+                    closeModal('product-detail-modal');
+                };
+            }
+
+            // Show modal
+            lucide.createIcons();
+            modal.classList.remove('hidden');
+        };
+
+        // Render the main product catalog grid (REVERTED TO FLAT GRID)
+        window.renderProductCatalog = () => {
+            const container = document.getElementById('product-grid');
+            const searchInputEl = document.getElementById('search-input');
+            const noProductsEl = document.getElementById('no-products');
+
+            // CRITICAL: Guard against null elements if render is called before DOM is fully ready
+            if (!container || !searchInputEl || !noProductsEl || !window.activeTab) {
+                console.warn('DOM elements not ready or activeTab not set for renderProductCatalog.');
+                return; 
+            }
+            
+            const searchInput = searchInputEl.value.toLowerCase();
+            const activeCuts = window.activeFilters.cut;
+
+            // 1. Filter products based on active tab, search, and selected cuts
+            let filteredProducts = window.products.filter(p => p.type === window.activeTab);
+
+            filteredProducts = filteredProducts.filter(p => {
+                const searchMatch = (
+                    p.name.toLowerCase().includes(searchInput) ||
+                    p.sku.toLowerCase().includes(searchInput) ||
+                    p.brand.toLowerCase().includes(searchInput)
+                );
+                const cutMatch = activeCuts.length === 0 || activeCuts.includes(p.cut);
+                return searchMatch && cutMatch;
+            }).sort((a, b) => a.name.localeCompare(b.name));
+            
+            // Revert: Output a single flat grid, removing sub-section logic
+            const htmlContent = filteredProducts.map(createProductCard).join('');
+            
+            container.innerHTML = htmlContent;
+
+            // Show/hide no products message
+            noProductsEl.classList.toggle('hidden', filteredProducts.length > 0);
+
+            // Re-render icons for new elements
+            lucide.createIcons();
+        };
+
+
+        // Render distributor dashboard details
+        window.renderDashboard = () => {
+            if (!window.distributorProfile) return;
+
+            const { creditLimit, outstandingBalance } = window.distributorProfile;
+            const availableCredit = creditLimit - outstandingBalance;
+            const utilization = (outstandingBalance / creditLimit) * 100;
+
+            const creditLimitEl = document.getElementById('credit-limit');
+            const creditUsedEl = document.getElementById('credit-used');
+            const creditAvailableEl = document.getElementById('credit-available');
+            const utilizationBar = document.getElementById('utilization-bar');
+            const utilizationPercent = document.getElementById('utilization-percent');
+            
+            if (creditLimitEl) creditLimitEl.textContent = formatCurrency(creditLimit);
+            if (creditUsedEl) creditUsedEl.textContent = formatCurrency(outstandingBalance);
+            if (creditAvailableEl) creditAvailableEl.textContent = formatCurrency(availableCredit);
+            
+            if (utilizationBar && utilizationPercent) {
+                utilizationBar.style.width = `${Math.min(utilization, 100)}%`;
+                utilizationPercent.textContent = `${Math.min(utilization.toFixed(1), 100)}%`;
+                
+                // Change color if utilization is high
+                if (utilization > 80) {
+                    utilizationBar.classList.remove('bg-emerald-600');
+                    utilizationBar.classList.add('bg-red-500');
+                } else {
+                    utilizationBar.classList.remove('bg-red-500');
+                    utilizationBar.classList.add('bg-emerald-600');
+                }
+            }
+        };
+
+        // Render order history table
+        const renderOrderHistory = (orders) => {
+            const container = document.getElementById('order-history-body');
+            if (!container) return;
+            
+            if (orders.length === 0) {
+                container.innerHTML = `<tr><td colspan="5" class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">No orders placed yet.</td></tr>`;
+                return;
+            }
+
+            // Sort by latest date. Added null check for timestamp before calling toDate().
+            orders.sort((a, b) => {
+                const dateA = a.timestamp ? a.timestamp.toDate() : new Date(0); // Use epoch date for null timestamps (will appear first)
+                const dateB = b.timestamp ? b.timestamp.toDate() : new Date(0);
+                return dateB - dateA; // Sort descending (newest first)
+            });
+
+            container.innerHTML = orders.map(order => {
+                // Also add null check for timestamp rendering
+                const date = order.timestamp ? new Date(order.timestamp.toDate()).toLocaleDateString() : 'N/A';
+                const statusColor = {
+                    'Delivered': 'bg-green-100 text-green-800',
+                    'Shipped': 'bg-blue-100 text-blue-800',
+                    'Processing': 'bg-yellow-100 text-yellow-800',
+                    'Canceled': 'bg-red-100 text-red-800'
+                }[order.status] || 'bg-gray-100 text-gray-800';
+
+                return `
+                    <tr>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${order.id.substring(0, 8)}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${date}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-emerald-600">${formatCurrency(order.totalAmount)}</td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusColor}">
+                                ${order.status}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-blue-600 hover:text-blue-800 cursor-pointer">
+                            ${order.status === 'Shipped' ? 'Tracking Link' : 'View Details'}
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        };
+
+        // --- CART LOGIC ---
+        
+        // FIX: Added 'isSetQuantity' parameter to distinguish between incremental updates (catalog grid)
+        // and setting the total quantity (product detail modal).
+        window.updateCart = (productId, value, isSetQuantity = false) => {
+            const product = window.products.find(p => p.id === productId);
+            if (!product) return;
+
+            let newQuantity;
+
+            if (isSetQuantity) {
+                // From Detail Modal: value is the desired total quantity
+                newQuantity = Math.max(0, value);
+            } else {
+                // From Catalog Grid/Cart Modal: value is the change (+1 or -1)
+                const currentQty = window.cart[productId] ? window.cart[productId].quantity : 0;
+                newQuantity = Math.max(0, currentQty + value);
+            }
+
+            if (newQuantity > 0) {
+                window.cart[productId] = { ...product, quantity: newQuantity, unit: product.unit };
+            } else {
+                delete window.cart[productId];
+            }
+
+            // Re-render everything
+            renderProductCatalog();
+            const cartModal = document.getElementById('cart-modal');
+            if (cartModal && !cartModal.classList.contains('hidden')) {
+                renderCartModal();
+            }
+            updateCartCount();
+        };
+
+        // Update the cart icon count
+        const updateCartCount = () => {
+            const count = Object.values(window.cart).reduce((sum, item) => sum + item.quantity, 0);
+            const cartCountEl = document.getElementById('cart-count');
+            if (cartCountEl) {
+                cartCountEl.textContent = count;
+            }
+        };
+
+        // Render the cart modal content
+        window.renderCartModal = () => {
+            const container = document.getElementById('cart-items-container');
+            const subtotalEl = document.getElementById('cart-subtotal');
+            const emptyMsg = document.getElementById('empty-cart-message');
+            const placeOrderBtn = document.getElementById('place-order-button');
+            const creditWarning = document.getElementById('credit-warning');
+            
+            if (!container || !subtotalEl || !emptyMsg || !placeOrderBtn || !creditWarning) return;
+
+            const cartItems = Object.values(window.cart);
+            let subtotal = 0;
+
+            if (cartItems.length === 0) {
+                container.innerHTML = '';
+                emptyMsg.classList.remove('hidden');
+                subtotalEl.textContent = formatCurrency(0);
+                placeOrderBtn.disabled = true;
+                creditWarning.classList.add('hidden');
+                return;
+            }
+
+            emptyMsg.classList.add('hidden');
+            container.innerHTML = cartItems.map(item => {
+                const lineTotal = item.unitPrice * item.quantity;
+                subtotal += lineTotal;
+                // Display unit in the cart modal
+                const unitText = item.unit ? `(${item.unit})` : '';
+
+                return `
+                    <div class="flex items-center justify-between border-b last:border-b-0 py-3">
+                        <div class="flex-grow">
+                            <p class="font-semibold text-gray-800">${item.name}</p>
+                            <p class="text-sm text-gray-500">${item.sku}</p>
+                        </div>
+                        <div class="flex items-center space-x-3">
+                            <button onclick="updateCart('${item.id}', -1, false)" class="text-gray-500 hover:text-red-500 transition"><i data-lucide="minus-circle" class="w-5 h-5"></i></button>
+                            <!-- Cart quantity display adjusted to handle units -->
+                            <span class="font-medium w-12 text-center">${item.quantity} ${unitText}</span>
+                            <button onclick="updateCart('${item.id}', 1, false)" class="text-gray-500 hover:text-emerald-500 transition"><i data-lucide="plus-circle" class="w-5 h-5"></i></button>
+                        </div>
+                        <span class="text-sm font-bold w-24 text-right">${formatCurrency(lineTotal)}</span>
+                    </div>
+                `;
+            }).join('');
+            
+            lucide.createIcons(); // Render icons inside modal
+
+            subtotalEl.textContent = formatCurrency(subtotal);
+
+            const availableCredit = window.distributorProfile ? window.distributorProfile.creditLimit - window.distributorProfile.outstandingBalance : 0;
+            
+            if (subtotal > availableCredit) {
+                creditWarning.classList.remove('hidden');
+                placeOrderBtn.disabled = true;
+                placeOrderBtn.textContent = 'Credit Limit Exceeded';
+            } else {
+                creditWarning.classList.add('hidden');
+                placeOrderBtn.disabled = false;
+                placeOrderBtn.textContent = 'Place Order';
+            }
+        };
+
+        // Place the order (Firestore write)
+        window.placeOrder = async () => {
+            const cartItems = Object.values(window.cart);
+            if (cartItems.length === 0) return;
+
+            const totalAmount = cartItems.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
+            
+            if (totalAmount > (window.distributorProfile.creditLimit - window.distributorProfile.outstandingBalance)) {
+                showMessage("Order Failed", "The total amount exceeds your available credit line. Please adjust your order.");
+                return;
+            }
+
+            closeModal('cart-modal');
+            showMessage("Order Processing", "Your order is being submitted and credit checked...");
+
+            try {
+                // 1. Create the Order Document
+                // Strip unnecessary product details before saving order items, but keep 'unit'
+                const itemsToSave = cartItems.map(item => ({
+                    id: item.id,
+                    sku: item.sku,
+                    name: item.name,
+                    unitPrice: item.unitPrice,
+                    quantity: item.quantity,
+                    unit: item.unit // Ensure the unit is saved with the order
+                }));
+
+                const newOrder = {
+                    distributorId: userId,
+                    items: itemsToSave,
+                    totalAmount: totalAmount,
+                    status: 'Processing',
+                    timestamp: serverTimestamp(),
+                };
+                
+                const ordersCollectionRef = collection(db, "artifacts", appId, "users", userId, "orders");
+                await addDoc(ordersCollectionRef, newOrder);
+
+                // 2. Update Distributor Credit Line
+                const distributorDocRef = doc(db, "artifacts", appId, "users", userId, "profile", "data");
+                const newOutstandingBalance = window.distributorProfile.outstandingBalance + totalAmount;
+                
+                await updateDoc(distributorDocRef, {
+                    outstandingBalance: newOutstandingBalance
+                });
+
+                // 3. Clear the Cart and notify
+                window.cart = {};
+                updateCartCount();
+                renderProductCatalog();
+                showMessage("Order Placed Successfully!", `Your order for ${formatCurrency(totalAmount)} has been placed and is now in 'Processing'. Your outstanding balance has been updated.`);
+
+            } catch (error) {
+                console.error("Order Placement Error:", error);
+                showMessage("Order Failed", "There was an error placing your order. Please try again. (Details in console)");
+            }
+        };
+
+        // --- SIDEBAR COLLAPSE LOGIC ---
+        
+        // Toggles the desktop sidebar collapse state
+        const toggleSidebar = () => {
+            isSidebarCollapsed = !isSidebarCollapsed;
+
+            const sidebar = document.getElementById('left-nav-sidebar');
+            const viewContainer = document.getElementById('view-container');
+            const toggleIcon = document.getElementById('toggle-icon');
+            const sidebarTitle = document.getElementById('sidebar-title');
+            
+            if (!sidebar || !viewContainer || !toggleIcon || !sidebarTitle) return;
+
+            // 1. Toggle sidebar width/span
+            sidebar.classList.toggle('lg:col-span-2', !isSidebarCollapsed);
+            sidebar.classList.toggle('lg:col-span-1', isSidebarCollapsed);
+            
+            // 2. Toggle view container width/span
+            viewContainer.classList.toggle('lg:col-span-10', !isSidebarCollapsed);
+            viewContainer.classList.toggle('lg:col-span-11', isSidebarCollapsed);
+
+            // 3. Adjust sidebar content styling for collapsed state
+            document.querySelectorAll('#sidebar-content .nav-tab').forEach(button => {
+                // Change button alignment for icon-only view
+                button.classList.toggle('justify-center', isSidebarCollapsed); 
+                button.classList.toggle('text-left', !isSidebarCollapsed); 
+                // Reduce horizontal padding for narrower look
+                button.classList.toggle('px-3', !isSidebarCollapsed); 
+                button.classList.toggle('px-1', isSidebarCollapsed); 
+            });
+
+
+            // 4. Hide/Show text content and adjust icon margin
+            document.querySelectorAll('.sidebar-text').forEach(el => {
+                el.classList.toggle('opacity-0', isSidebarCollapsed);
+                el.classList.toggle('hidden', isSidebarCollapsed);
+            });
+            
+            // Hide Menu Title
+            sidebarTitle.classList.toggle('hidden', isSidebarCollapsed);
+
+            // Adjust margin for icons
+            document.querySelectorAll('.nav-icon').forEach(el => {
+                 el.classList.toggle('mr-2', !isSidebarCollapsed);
+                 el.classList.toggle('mr-0', isSidebarCollapsed);
+            });
+            
+            // Toggle icon (Chevron Left/Right)
+            toggleIcon.setAttribute('data-lucide', isSidebarCollapsed ? 'chevron-right' : 'chevron-left');
+            
+            lucide.createIcons();
+        };
+
+        // --- UI EVENT HANDLERS ---
+        
+        // Function to set up all event listeners after DOM is loaded
+        const setupEventListeners = () => {
+            // Open Cart Modal
+            const cartButton = document.getElementById('cart-button');
+            if (cartButton) {
+                cartButton.addEventListener('click', () => {
+                    renderCartModal();
+                    document.getElementById('cart-modal').classList.remove('hidden');
+                });
+            }
+            
+            // Desktop Sidebar Toggle Logic
+            const sidebarToggle = document.getElementById('sidebar-toggle-desktop');
+            if (sidebarToggle) {
+                sidebarToggle.addEventListener('click', toggleSidebar);
+            }
+
+            // Tab Switching Logic (for left nav)
+            document.querySelectorAll('.nav-tab').forEach(tab => {
+                tab.addEventListener('click', (e) => {
+                    // Determine the button that was clicked (handling the case where the icon is clicked)
+                    const clickedButton = e.target.closest('.nav-tab');
+                    if (!clickedButton) return; 
+
+                    const targetViewId = clickedButton.getAttribute('data-target');
+
+                    // Update desktop nav styles
+                    document.querySelectorAll('#left-nav-sidebar .nav-tab').forEach(t => {
+                        t.classList.remove('active-nav-tab');
+                        t.classList.add('text-gray-700', 'hover:bg-gray-100');
+                    });
+                    // Find and update the corresponding desktop button (if one exists)
+                    const desktopButton = document.querySelector(`#left-nav-sidebar .nav-tab[data-target="${targetViewId}"]`);
+                    if (desktopButton) {
+                        desktopButton.classList.add('active-nav-tab');
+                        desktopButton.classList.remove('text-gray-700', 'hover:bg-gray-100');
+                    }
+                    
+                    // Update mobile nav styles
+                    document.querySelectorAll('#mobile-nav-drawer .nav-tab').forEach(t => {
+                        t.classList.remove('active-nav-tab');
+                        t.classList.add('text-gray-700', 'hover:bg-gray-100');
+                    });
+                    // Find and update the corresponding mobile button (if one exists)
+                    const mobileButton = document.querySelector(`#mobile-nav-drawer .nav-tab[data-target="${targetViewId}"]`);
+                    if (mobileButton) {
+                        mobileButton.classList.add('active-nav-tab');
+                        mobileButton.classList.remove('text-gray-700', 'hover:bg-gray-100');
+                    }
+
+
+                    // Switch view content
+                    document.querySelectorAll('.view').forEach(view => {
+                        view.classList.add('hidden');
+                    });
+                    const targetView = document.getElementById(targetViewId);
+                    if (targetView) {
+                        targetView.classList.remove('hidden');
+                    }
+                    
+                    // Hide mobile drawer after selection
+                    const mobileDrawer = document.getElementById('mobile-nav-drawer');
+                    if (mobileDrawer) {
+                        mobileDrawer.classList.add('hidden');
+                    }
+
+
+                    // If switching to dashboard, re-render
+                    if (targetViewId === 'dashboard-view') {
+                        renderDashboard();
+                    } else if (targetViewId === 'catalog-view') {
+                        // If returning to catalog, ensure tabs/products are rendered
+                        renderProductTabs();
+                    }
+                    
+                    lucide.createIcons(); // Re-render icons on new view
+                });
+            });
+
+            // Mobile Nav Toggle
+            const mobileNavToggle = document.getElementById('mobile-nav-toggle');
+            if (mobileNavToggle) {
+                mobileNavToggle.addEventListener('click', () => {
+                    const mobileDrawer = document.getElementById('mobile-nav-drawer');
+                    if (mobileDrawer) {
+                        mobileDrawer.classList.remove('hidden');
+                    }
+                });
+            }
+
+            // Attach live search input listener
+            const searchInput = document.getElementById('search-input');
+            if (searchInput) {
+                searchInput.addEventListener('input', renderProductCatalog);
+            }
+
+            // Ensure the main nav sidebar is visible on large screens by default
+            const navSidebar = document.getElementById('left-nav-sidebar');
+            if (navSidebar && window.innerWidth >= 1024) { // Tailwind's 'lg' breakpoint
+                navSidebar.classList.remove('hidden');
+            }
+        };
+
+        // Initialize on DOMContentLoaded to ensure all elements are available before listeners are attached
+        window.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            setupEventListeners();
+        });
 
     </script>
 </body>
