@@ -48,6 +48,21 @@
             border-color: #059669; 
             background-color: #059669;
         }
+        
+        /* FIX: Ensure sticky filter bar starts below the tabs, and tabs stick below header */
+        #product-tabs-header {
+            top: 5rem; /* Height of the main header */
+            z-index: 5;
+        }
+        .filter-sidebar-sticky {
+            top: 10rem; /* Below header and tabs */
+            z-index: 4;
+        }
+        /* FIX: Ensure loading container stretches across the full grid */
+        #product-grid > #loading-products {
+            grid-column: 1 / -1;
+        }
+
     </style>
 </head>
 <body class="min-h-screen flex flex-col">
@@ -133,7 +148,7 @@
             <div id="catalog-view" class="view">
                 
                 <!-- Product Tabs (Meat Type) -->
-                <div id="product-tabs-header" class="flex flex-wrap border-b border-gray-200 bg-white p-3 rounded-xl card-shadow mb-6 sticky top-20 z-0">
+                <div id="product-tabs-header" class="flex flex-wrap border-b border-gray-200 bg-white p-3 rounded-xl card-shadow mb-6 sticky z-0">
                     <!-- Tabs will be dynamically injected here -->
                     <div class="text-gray-500 p-2">Loading product categories...</div>
                 </div>
@@ -141,7 +156,7 @@
                 <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
 
                     <!-- Filter / Search Sidebar (Now for the active tab) -->
-                    <div class="lg:col-span-1 bg-white p-6 rounded-xl card-shadow h-fit sticky top-40">
+                    <div class="lg:col-span-1 bg-white p-6 rounded-xl card-shadow h-fit sticky filter-sidebar-sticky">
                         <h2 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                             <i data-lucide="search" class="w-5 h-5 mr-2 text-emerald-600"></i>
                             Quick Search
@@ -359,16 +374,72 @@
         // Initial Mock Data Setup (Used instead of loading from Firebase)
         const defaultImageUrl = "https://placehold.co/100x100/34D399/FFFFFF/png?text=GMG+Meat";
         
+        // EXPANDED PRODUCT LIST (50+ SKUS)
         window.products = [
-            { id: 'prod1', sku: 'BEEF-STEAK-RBY-10KG', name: 'Premium Beef Ribeye Steak (Frozen)', brand: 'GMG Select', type: 'Beef', cut: 'Steak', unit: 'kg', unitPrice: 850.00, inventory: 50, imageUrl: defaultImageUrl, rating: 4.8, description: "Highly marbled, tender Ribeye steak, individually vacuum-sealed and flash-frozen to lock in flavor and freshness. Ideal for high-end restaurants and large catering events." },
-            { id: 'prod2', sku: 'LAMB-LOIN-CHLD-5KG', name: 'Chilled Australian Lamb Loin', brand: 'Down Under', type: 'Lamb', cut: 'Loin', unit: 'kg', unitPrice: 520.00, inventory: 80, imageUrl: defaultImageUrl, rating: 4.5, description: "Prime grade, chilled lamb loin sourced from certified Australian farms. Perfect for carving or portioning into individual chops. Delivered fresh, never frozen." },
-            { id: 'prod3', sku: 'CHICKEN-GROUND-1KG', name: 'Bulk Ground Chicken Breast (Chilled)', brand: 'PoultryPro', type: 'Chicken', cut: 'Ground', unit: 'kg', unitPrice: 85.00, inventory: 120, imageUrl: defaultImageUrl, rating: 4.2, description: "Lean ground chicken breast, suitable for health-conscious menus and mass preparation. Low fat content and consistently textured for uniform cooking." },
-            { id: 'prod4', sku: 'BEEF-TEND-SLCT-1KG', name: 'Wagyu Beef Tenderloin A5', brand: 'Kobe Reserve', type: 'Beef', cut: 'Steak', unit: 'g', unitPrice: 15.00, inventory: 20, imageUrl: defaultImageUrl, rating: 5.0, description: "The pinnacle of beef quality. Genuine A5 Wagyu Tenderloin, known for its extreme tenderness and rich, buttery marbling. Sold by the gram for specialty orders." },
-            { id: 'prod5', sku: 'LAMB-SHANK-FRZ-10KG', name: 'Frozen New Zealand Lamb Shank', brand: 'Down Under', type: 'Lamb', cut: 'Loin', unit: 'box', unitPrice: 480.00, inventory: 65, imageUrl: defaultImageUrl, rating: 3.9, description: "Classic New Zealand lamb shanks, bone-in and pre-trimmed. Excellent for slow cooking, braising, or stews. Conveniently packaged in 10kg bulk boxes." },
-            { id: 'prod6', sku: 'BEEF-GROUND-8020-5KG', name: '80/20 Lean Ground Beef', brand: 'GMG Select', type: 'Beef', cut: 'Ground', unit: 'kg', unitPrice: 350.00, inventory: 150, imageUrl: defaultImageUrl, rating: 4.1, description: "Standard 80% lean, 20% fat ground beef blend. Versatile for burgers, meatballs, and taco filling. Comes in 5kg vacuum-sealed packs." },
-            { id: 'prod7', sku: 'CHICKEN-THIGH-FRZ', name: 'Frozen Chicken Thighs (Bone-in)', brand: 'PoultryPro', type: 'Chicken', cut: 'Thigh', unit: 'piece', unitPrice: 2.50, inventory: 8, imageUrl: defaultImageUrl, rating: 4.6, description: "Individually frozen, bone-in chicken thighs. A cost-effective and flavorful option for large volume cooking. Consistent size for easy portion control." }, 
-            { id: 'prod8', sku: 'LAMB-CUBE-CHLD', name: 'Chilled Lamb Diced Cubes', brand: 'Down Under', type: 'Lamb', cut: 'Cube', unit: 'kg', unitPrice: 400.00, inventory: 90, imageUrl: defaultImageUrl, rating: 4.7, description: "Pre-diced, chilled lamb cubes ready for kebabs, curries, or roasting. Saves prep time and ensures uniform cooking size." },
-            { id: 'prod9', sku: 'BEEF-FILLET-FRZ-5KG', name: 'Frozen Beef Fillet Whole Muscle', brand: 'GMG Select', type: 'Beef', cut: 'Loin', unit: 'box', unitPrice: 700.00, inventory: 40, imageUrl: defaultImageUrl, rating: 4.9, description: "Whole frozen beef fillet, suitable for slicing into filet mignon or chateaubriand. Excellent quality and value for large volume needs." },
+            // === BEEF (18 SKUs) ===
+            { id: 'prod1', sku: 'BEEF-RIBEYE-PRM-10KG', name: 'Premium Beef Ribeye Steak (Frozen)', brand: 'GMG Select', type: 'Beef', cut: 'Steak', unit: 'kg', unitPrice: 850.00, inventory: 50, imageUrl: defaultImageUrl, rating: 4.8, description: "Highly marbled, tender Ribeye steak, individually vacuum-sealed and flash-frozen. Ideal for high-end restaurants." },
+            { id: 'prod4', sku: 'BEEF-TENDER-WAG-1KG', name: 'Wagyu Beef Tenderloin A5', brand: 'Kobe Reserve', type: 'Beef', cut: 'Steak', unit: 'g', unitPrice: 15.00, inventory: 20, imageUrl: defaultImageUrl, rating: 5.0, description: "The pinnacle of beef quality. Genuine A5 Wagyu Tenderloin." },
+            { id: 'prod6', sku: 'BEEF-GROUND-8020-5KG', name: '80/20 Lean Ground Beef', brand: 'GMG Select', type: 'Beef', cut: 'Ground', unit: 'kg', unitPrice: 350.00, inventory: 150, imageUrl: defaultImageUrl, rating: 4.1, description: "Standard 80% lean, 20% fat ground beef blend. Versatile for burgers and meatballs." },
+            { id: 'prod9', sku: 'BEEF-FILLET-WHL-5KG', name: 'Frozen Beef Fillet Whole Muscle', brand: 'GMG Select', type: 'Beef', cut: 'Loin', unit: 'box', unitPrice: 700.00, inventory: 40, imageUrl: defaultImageUrl, rating: 4.9, description: "Whole frozen beef fillet, suitable for slicing into filet mignon or chateaubriand." },
+            { id: 'prod10', sku: 'BEEF-SIRLOIN-CHLD-1KG', name: 'Chilled AAA Sirloin Steak', brand: 'Prime Cut', type: 'Beef', cut: 'Steak', unit: 'kg', unitPrice: 55.00, inventory: 110, imageUrl: defaultImageUrl, rating: 4.5, description: "AAA Sirloin, great balance of flavor and tenderness. Sold as individual 1kg pieces." },
+            { id: 'prod11', sku: 'BEEF-SHORTS-PRM-15KG', name: 'Premium Short Ribs (Bone-in)', brand: 'GMG Select', type: 'Beef', cut: 'Ribs', unit: 'box', unitPrice: 650.00, inventory: 35, imageUrl: defaultImageUrl, rating: 4.7, description: "Thick, meaty bone-in short ribs, perfect for slow cooking and smoking." },
+            { id: 'prod12', sku: 'BEEF-BRISKET-FRZ-5KG', name: 'Frozen Beef Brisket Flat', brand: 'Smokehouse', type: 'Beef', cut: 'Breast', unit: 'kg', unitPrice: 380.00, inventory: 85, imageUrl: defaultImageUrl, rating: 4.6, description: "Select Beef Brisket flat cut, ideal for slicing or corned beef preparation." },
+            { id: 'prod13', sku: 'BEEF-DICED-1KG', name: 'Diced Beef Cubes (Stewing)', brand: 'ValuePak', type: 'Beef', cut: 'Cube', unit: 'kg', unitPrice: 45.00, inventory: 160, imageUrl: defaultImageUrl, rating: 3.8, description: "Economical diced beef pieces for curries and slow-cooked stews." },
+            { id: 'prod14', sku: 'BEEF-GROUND-9010-5KG', name: '90/10 Lean Ground Beef', brand: 'GMG Select', type: 'Beef', cut: 'Ground', unit: 'kg', unitPrice: 420.00, inventory: 95, imageUrl: defaultImageUrl, rating: 4.3, description: "Extra lean ground beef blend for lighter meals and high-protein content." },
+            { id: 'prod15', sku: 'BEEF-OXL-WHL-1KG', name: 'Whole Beef Oxtail (Frozen)', brand: 'Prime Cut', type: 'Beef', cut: 'Tail', unit: 'kg', unitPrice: 75.00, inventory: 40, imageUrl: defaultImageUrl, rating: 4.0, description: "Frozen whole beef oxtail, great for soups and rich gravy." },
+            { id: 'prod16', sku: 'BEEF-FLANK-FRZ-5KG', name: 'Frozen Flank Steak Muscle', brand: 'Prime Cut', type: 'Beef', cut: 'Steak', unit: 'kg', unitPrice: 410.00, inventory: 60, imageUrl: defaultImageUrl, rating: 4.4, description: "Flank steak, excellent for marinades and grilling, packed in 5kg portions." },
+            { id: 'prod17', sku: 'BEEF-ROAST-CHLD-2KG', name: 'Chilled Round Roast', brand: 'GMG Select', type: 'Beef', cut: 'Roast', unit: 'kg', unitPrice: 110.00, inventory: 70, imageUrl: defaultImageUrl, rating: 4.2, description: "Lean and flavorful Round Roast, excellent value for traditional roasting." },
+            { id: 'prod18', sku: 'BEEF-T-BONE-FRZ-1KG', name: 'T-Bone Steak (Frozen)', brand: 'Butcher Block', type: 'Beef', cut: 'Steak', unit: 'piece', unitPrice: 75.00, inventory: 90, imageUrl: defaultImageUrl, rating: 4.5, description: "Individually packed, bone-in T-Bone steak." },
+            { id: 'prod19', sku: 'BEEF-SKIRT-PRM-1KG', name: 'Premium Skirt Steak (Outside)', brand: 'Prime Cut', type: 'Beef', cut: 'Steak', unit: 'kg', unitPrice: 95.00, inventory: 55, imageUrl: defaultImageUrl, rating: 4.7, description: "Outside skirt steak, ideal for fajitas and quick grilling." },
+            { id: 'prod20', sku: 'BEEF-DICED-PRM-5KG', name: 'Premium Beef Cubes (Chilled)', brand: 'GMG Select', type: 'Beef', cut: 'Cube', unit: 'kg', unitPrice: 320.00, inventory: 80, imageUrl: defaultImageUrl, rating: 4.5, description: "High-quality chilled beef cubes, excellent for goulash or high-end stews." },
+            { id: 'prod21', sku: 'BEEF-BONE-MARR-1KG', name: 'Beef Marrow Bones', brand: 'ValuePak', type: 'Beef', cut: 'Bone', unit: 'kg', unitPrice: 25.00, inventory: 150, imageUrl: defaultImageUrl, rating: 4.0, description: "Assorted marrow bones for broth and stock making." },
+            { id: 'prod22', sku: 'BEEF-CUBE-KABOB-5KG', name: 'Beef Kabob Cubes', brand: 'GMG Select', type: 'Beef', cut: 'Cube', unit: 'kg', unitPrice: 340.00, inventory: 70, imageUrl: defaultImageUrl, rating: 4.3, description: "Uniformly cut cubes, perfect for skewers and grilling." },
+            { id: 'prod23', sku: 'BEEF-RIB-EYE-SLIC-1KG', name: 'Sliced Beef Ribeye (Shabu)', brand: 'Prime Cut', type: 'Beef', cut: 'Steak', unit: 'g', unitPrice: 12.00, inventory: 40, imageUrl: defaultImageUrl, rating: 4.9, description: "Thinly sliced Ribeye for hot pot or quick cooking." },
+
+            // === LAMB (14 SKUs) ===
+            { id: 'prod2', sku: 'LAMB-LOIN-CHLD-5KG', name: 'Chilled Australian Lamb Loin', brand: 'Down Under', type: 'Lamb', cut: 'Loin', unit: 'kg', unitPrice: 520.00, inventory: 80, imageUrl: defaultImageUrl, rating: 4.5, description: "Prime grade, chilled lamb loin, perfect for carving." },
+            { id: 'prod5', sku: 'LAMB-SHANK-FRZ-10KG', name: 'Frozen New Zealand Lamb Shank', brand: 'Down Under', type: 'Lamb', cut: 'Loin', unit: 'box', unitPrice: 480.00, inventory: 65, imageUrl: defaultImageUrl, rating: 3.9, description: "Classic New Zealand lamb shanks, excellent for slow cooking." },
+            { id: 'prod8', sku: 'LAMB-CUBE-CHLD-1KG', name: 'Chilled Lamb Diced Cubes', brand: 'Down Under', type: 'Lamb', cut: 'Cube', unit: 'kg', unitPrice: 400.00, inventory: 90, imageUrl: defaultImageUrl, rating: 4.7, description: "Pre-diced, chilled lamb cubes ready for kebabs or curries." },
+            { id: 'prod24', sku: 'LAMB-RACK-FRZ-1KG', name: 'French Trimmed Lamb Rack (Frozen)', brand: 'Prime Cut', type: 'Lamb', cut: 'Ribs', unit: 'piece', unitPrice: 95.00, inventory: 50, imageUrl: defaultImageUrl, rating: 4.9, description: "Individually frozen, French trimmed lamb rack, perfect for fine dining." },
+            { id: 'prod25', sku: 'LAMB-GROUND-8020-5KG', name: 'Ground Lamb 80/20', brand: 'Down Under', type: 'Lamb', cut: 'Ground', unit: 'kg', unitPrice: 380.00, inventory: 110, imageUrl: defaultImageUrl, rating: 4.3, description: "Flavorsome ground lamb blend, ideal for kofta and savory pies." },
+            { id: 'prod26', sku: 'LAMB-LEG-BONL-2KG', name: 'Boneless Lamb Leg Roast', brand: 'GMG Select', type: 'Lamb', cut: 'Roast', unit: 'kg', unitPrice: 150.00, inventory: 75, imageUrl: defaultImageUrl, rating: 4.6, description: "Easy-to-carve boneless lamb leg roast, great for catering." },
+            { id: 'prod27', sku: 'LAMB-CHOP-LOIN-1KG', name: 'Lamb Loin Chops (Chilled)', brand: 'Butcher Block', type: 'Lamb', cut: 'Chop', unit: 'kg', unitPrice: 85.00, inventory: 60, imageUrl: defaultImageUrl, rating: 4.4, description: "Thick-cut loin chops, ready for grilling or pan-searing." },
+            { id: 'prod28', sku: 'LAMB-SHOULDER-DICE-5KG', name: 'Lamb Shoulder Diced (Frozen)', brand: 'ValuePak', type: 'Lamb', cut: 'Cube', unit: 'kg', unitPrice: 350.00, inventory: 130, imageUrl: defaultImageUrl, rating: 3.7, description: "Cost-effective diced lamb shoulder for large volume use." },
+            { id: 'prod29', sku: 'LAMB-NECK-SLICE-1KG', name: 'Lamb Neck Slices (Frozen)', brand: 'Down Under', type: 'Lamb', cut: 'Slice', unit: 'kg', unitPrice: 55.00, inventory: 45, imageUrl: defaultImageUrl, rating: 4.0, description: "Cross-cut lamb neck for robust stews and stock." },
+            { id: 'prod30', sku: 'LAMB-SAUS-PRM-1KG', name: 'Premium Lamb Sausages (Chilled)', brand: 'Butcher Block', type: 'Lamb', cut: 'Sausage', unit: 'pack', unitPrice: 40.00, inventory: 90, imageUrl: defaultImageUrl, rating: 4.3, description: "Gourmet lamb sausages with mint and rosemary seasoning." },
+            { id: 'prod31', sku: 'LAMB-BONES-STOCK-5KG', name: 'Lamb Bones for Stock', brand: 'ValuePak', type: 'Lamb', cut: 'Bone', unit: 'kg', unitPrice: 15.00, inventory: 180, imageUrl: defaultImageUrl, rating: 3.5, description: "Assorted lamb bones for making rich, savory stock." },
+            { id: 'prod32', sku: 'LAMB-KABOB-PRM-1KG', name: 'Lamb Kabob Skewers', brand: 'Prime Cut', type: 'Lamb', cut: 'Cube', unit: 'piece', unitPrice: 8.00, inventory: 120, imageUrl: defaultImageUrl, rating: 4.6, description: "Pre-marinated lamb cubes on skewers, ready for the grill." },
+            { id: 'prod33', sku: 'LAMB-RIB-BREAST-10KG', name: 'Lamb Rib and Breast Flaps', brand: 'ValuePak', type: 'Lamb', cut: 'Ribs', unit: 'box', unitPrice: 350.00, inventory: 55, imageUrl: defaultImageUrl, rating: 3.8, description: "Economical lamb ribs and breast flaps for value cooking." },
+            { id: 'prod34', sku: 'LAMB-FILLET-SLCT-1KG', name: 'Selected Lamb Fillet Muscle', brand: 'GMG Select', type: 'Lamb', cut: 'Loin', unit: 'kg', unitPrice: 120.00, inventory: 40, imageUrl: defaultImageUrl, rating: 4.7, description: "Lean and tender whole lamb fillet, great for quick cooking." },
+            
+            // === CHICKEN (14 SKUs) ===
+            { id: 'prod3', sku: 'CHICKEN-GROUND-1KG', name: 'Bulk Ground Chicken Breast (Chilled)', brand: 'PoultryPro', type: 'Chicken', cut: 'Ground', unit: 'kg', unitPrice: 85.00, inventory: 120, imageUrl: defaultImageUrl, rating: 4.2, description: "Lean ground chicken breast, suitable for health-conscious menus." },
+            { id: 'prod7', sku: 'CHICKEN-THIGH-FRZ', name: 'Frozen Chicken Thighs (Bone-in)', brand: 'PoultryPro', type: 'Chicken', cut: 'Thigh', unit: 'piece', unitPrice: 2.50, inventory: 8, imageUrl: defaultImageUrl, rating: 4.6, description: "Individually frozen, bone-in chicken thighs. A cost-effective and flavorful option." }, 
+            { id: 'prod35', sku: 'CHICKEN-BRST-BONL-2KG', name: 'Boneless Chicken Breast Fillet', brand: 'GMG Select', type: 'Chicken', cut: 'Breast', unit: 'kg', unitPrice: 15.00, inventory: 300, imageUrl: defaultImageUrl, rating: 4.9, description: "High-quality boneless, skinless chicken breast fillet. Frozen IQF." },
+            { id: 'prod36', sku: 'CHICKEN-WINGS-BULK-5KG', name: 'Chicken Wings (3-Joint, Bulk)', brand: 'ValuePak', type: 'Chicken', cut: 'Wing', unit: 'box', unitPrice: 120.00, inventory: 180, imageUrl: defaultImageUrl, rating: 4.0, description: "Bulk box of 3-joint chicken wings, great for appetizers." },
+            { id: 'prod37', sku: 'CHICKEN-DRUM-CHLD-1KG', name: 'Chilled Chicken Drumsticks', brand: 'PoultryPro', type: 'Chicken', cut: 'Leg', unit: 'kg', unitPrice: 8.00, inventory: 250, imageUrl: defaultImageUrl, rating: 4.3, description: "Fresh, chilled chicken drumsticks, excellent for frying or baking." },
+            { id: 'prod38', sku: 'CHICKEN-WHOLE-1KG', name: 'Whole Chicken (1kg avg)', brand: 'PoultryPro', type: 'Chicken', cut: 'Whole', unit: 'piece', unitPrice: 12.00, inventory: 90, imageUrl: defaultImageUrl, rating: 4.4, description: "Whole chicken, ideal for roasting or rotisserie." },
+            { id: 'prod39', sku: 'CHICKEN-MINCE-PRM-1KG', name: 'Premium Chicken Mince (Lean)', brand: 'GMG Select', type: 'Chicken', cut: 'Ground', unit: 'kg', unitPrice: 90.00, inventory: 100, imageUrl: defaultImageUrl, rating: 4.5, description: "Very lean, high-quality chicken mince, vacuum sealed." },
+            { id: 'prod40', sku: 'CHICKEN-LEGS-FRZ-10KG', name: 'Frozen Chicken Leg Quarters', brand: 'ValuePak', type: 'Chicken', cut: 'Leg', unit: 'box', unitPrice: 150.00, inventory: 60, imageUrl: defaultImageUrl, rating: 3.9, description: "Bulk frozen leg quarters, budget-friendly option." },
+            { id: 'prod41', sku: 'CHICKEN-TENDERS-1KG', name: 'Chicken Breast Tenders (IQF)', brand: 'PoultryPro', type: 'Chicken', cut: 'Breast', unit: 'kg', unitPrice: 18.00, inventory: 150, imageUrl: defaultImageUrl, rating: 4.7, description: "Individually Quick Frozen (IQF) tenders, easy to thaw and cook." },
+            { id: 'prod42', sku: 'CHICKEN-FEET-BULK-5KG', name: 'Chicken Feet (Bulk)', brand: 'ValuePak', type: 'Chicken', cut: 'Bone', unit: 'kg', unitPrice: 5.00, inventory: 200, imageUrl: defaultImageUrl, rating: 3.5, description: "For stock or specialized cuisine." },
+            { id: 'prod43', sku: 'CHICKEN-CUBE-1KG', name: 'Chicken Breast Cubes (Chilled)', brand: 'GMG Select', type: 'Chicken', cut: 'Cube', unit: 'kg', unitPrice: 17.00, inventory: 130, imageUrl: defaultImageUrl, rating: 4.3, description: "Pre-cut chicken breast cubes, perfect for stir-fry." },
+            { id: 'prod44', sku: 'CHICKEN-BACKS-5KG', name: 'Chicken Backs for Stock', brand: 'ValuePak', type: 'Chicken', cut: 'Bone', unit: 'kg', unitPrice: 6.00, inventory: 170, imageUrl: defaultImageUrl, rating: 3.6, description: "Used primarily for chicken stock base." },
+            { id: 'prod45', sku: 'CHICKEN-THIGH-BONL-2KG', name: 'Boneless Chicken Thigh (Skin On)', brand: 'Prime Cut', type: 'Chicken', cut: 'Thigh', unit: 'kg', unitPrice: 16.00, inventory: 110, imageUrl: defaultImageUrl, rating: 4.5, description: "Boneless thigh with skin for maximum flavor when roasting." },
+            { id: 'prod46', sku: 'CHICKEN-STRIP-1KG', name: 'Chicken Breast Strips (Chilled)', brand: 'PoultryPro', type: 'Chicken', cut: 'Breast', unit: 'kg', unitPrice: 14.50, inventory: 160, imageUrl: defaultImageUrl, rating: 4.4, description: "Pre-sliced strips, ready for salads and wraps." },
+
+            // === PORK (4 SKUs - Added for Variety/Flexibility) ===
+            { id: 'prod47', sku: 'PORK-BELLY-SKN-2KG', name: 'Pork Belly Slab (Skin-on)', brand: 'Butcher Block', type: 'Pork', cut: 'Belly', unit: 'kg', unitPrice: 45.00, inventory: 60, imageUrl: defaultImageUrl, rating: 4.7, description: "Thick slab of pork belly, excellent for roasting or curing." },
+            { id: 'prod48', sku: 'PORK-RIBS-SPARE-5KG', name: 'Spare Ribs (Frozen)', brand: 'Smokehouse', type: 'Pork', cut: 'Ribs', unit: 'box', unitPrice: 280.00, inventory: 45, imageUrl: defaultImageUrl, rating: 4.5, description: "Frozen spare ribs, great for BBQ and smoking." },
+            { id: 'prod49', sku: 'PORK-LOIN-BONL-2KG', name: 'Boneless Pork Loin', brand: 'GMG Select', type: 'Pork', cut: 'Loin', unit: 'kg', unitPrice: 35.00, inventory: 70, imageUrl: defaultImageUrl, rating: 4.6, description: "Lean boneless pork loin, perfect for slicing or roasting." },
+            { id: 'prod50', sku: 'PORK-DICED-1KG', name: 'Diced Pork Shoulder', brand: 'ValuePak', type: 'Pork', cut: 'Cube', unit: 'kg', unitPrice: 28.00, inventory: 100, imageUrl: defaultImageUrl, rating: 4.1, description: "Diced pork shoulder, ideal for stews, stir-fries, and kebab meat." },
+            
+            // === SEAFOOD (5 SKUs - Showing the flexibility of the category system) ===
+            { id: 'prod51', sku: 'FISH-SALMON-FILET-1KG', name: 'Atlantic Salmon Fillets (Skin On)', brand: 'AquaFresh', type: 'Seafood', cut: 'Fillet', unit: 'kg', unitPrice: 110.00, inventory: 90, imageUrl: defaultImageUrl, rating: 4.9, description: "Premium farmed Atlantic Salmon fillets, individually vacuum sealed." },
+            { id: 'prod52', sku: 'SHRIMP-BLK-TIGER-1KG', name: 'Black Tiger Shrimp (26/30)', brand: 'OceanGold', type: 'Seafood', cut: 'Shellfish', unit: 'kg', unitPrice: 95.00, inventory: 120, imageUrl: defaultImageUrl, rating: 4.7, description: "26/30 count per kg, tail-on, peeled and deveined." },
+            { id: 'prod53', sku: 'FISH-COD-PORTION-5KG', name: 'Cod Portions (Frozen Block)', brand: 'Northern Catch', type: 'Seafood', cut: 'Fillet', unit: 'box', unitPrice: 400.00, inventory: 50, imageUrl: defaultImageUrl, rating: 4.3, description: "5kg block of frozen, skinless, boneless cod portions." },
+            { id: 'prod54', sku: 'MUSSELS-GREEN-1KG', name: 'New Zealand Green Lip Mussels', brand: 'Down Under', type: 'Seafood', cut: 'Shellfish', unit: 'kg', unitPrice: 35.00, inventory: 75, imageUrl: defaultImageUrl, rating: 4.6, description: "Frozen half-shell mussels, perfect for steaming." },
+            { id: 'prod55', sku: 'SQUID-RINGS-FRZ-1KG', name: 'Frozen Squid Rings (IQF)', brand: 'OceanGold', type: 'Seafood', cut: 'Other', unit: 'kg', unitPrice: 45.00, inventory: 110, imageUrl: defaultImageUrl, rating: 4.0, description: "IQF calamari rings, ready for frying." },
         ];
         
         window.distributorProfile = {
@@ -379,14 +450,14 @@
         // Static helper function to generate mock order IDs
         const generateMockOrderId = () => 'ORD-' + Math.random().toString(36).substring(2, 10).toUpperCase();
 
-        // Initial mock order data
+        // Initial mock order data (Referencing expanded products)
         window.orders = [
             // Delivered Order
-            { id: generateMockOrderId(), items: [{id:'prod1', quantity: 2}, {id:'prod7', quantity: 50}], totalAmount: 1825.00, status: 'Delivered', timestamp: new Date(Date.now() - 86400000 * 5) },
+            { id: generateMockOrderId(), items: [{id:'prod1', quantity: 2}, {id:'prod35', quantity: 10}], totalAmount: 1850.00, status: 'Delivered', timestamp: new Date(Date.now() - 86400000 * 5) },
             // Shipped Order (Contributes to outstanding balance)
-            { id: generateMockOrderId(), items: [{id:'prod2', quantity: 3}], totalAmount: 1560.00, status: 'Shipped', timestamp: new Date(Date.now() - 86400000 * 2) },
+            { id: generateMockOrderId(), items: [{id:'prod11', quantity: 3}], totalAmount: 1950.00, status: 'Shipped', timestamp: new Date(Date.now() - 86400000 * 2) },
             // Processing Order (Contributes to outstanding balance)
-            { id: generateMockOrderId(), items: [{id:'prod1', quantity: 1}, {id:'prod2', quantity: 1}], totalAmount: 1370.00, status: 'Processing', timestamp: new Date() }
+            { id: generateMockOrderId(), items: [{id:'prod4', quantity: 100}, {id:'prod25', quantity: 1}], totalAmount: 1880.00, status: 'Processing', timestamp: new Date() }
         ];
 
         // Global state for active filters (Meat Type is now the activeTab)
@@ -714,7 +785,8 @@
                                 <i data-lucide="tag" class="w-5 h-5 mr-2 text-emerald-600"></i>
                                 ${cut} Cuts
                             </h2>
-                            <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+                            <!-- FIX: Changed grid layout to ensure 2 columns max (sm:grid-cols-2) on medium and large screens -->
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
                                 ${groupedByCut[cut].map(createProductCard).join('')}
                             </div>
                         </section>
