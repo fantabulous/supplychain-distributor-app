@@ -43,26 +43,112 @@
         .nav-icon {
             transition: margin 0.3s ease;
         }
-        /* Style for the dynamic filter checkboxes */
-        input[type="checkbox"]:checked {
-            border-color: #059669; 
+        /* Style for the dynamic pill/tag filter */
+        .pill-active {
             background-color: #059669;
+            color: white;
+            box-shadow: 0 2px 4px rgba(5, 150, 105, 0.4);
+        }
+        .pill-active:hover {
+            background-color: #047857;
         }
         
-        /* FIX: Ensure sticky filter bar starts below the tabs, and tabs stick below header */
+        /* FIX: Ensure sticky elements stack correctly */
         #product-tabs-header {
-            top: 5rem; /* Height of the main header */
-            z-index: 5;
+            top: 5rem; 
+            z-index: 10; 
         }
+        
+        /* FIX: Adjusted top position for the main filter sidebar */
         .filter-sidebar-sticky {
-            top: 10rem; /* Below header and tabs */
+            top: 15rem; /* Below header, tabs, and pill bar */
             z-index: 4;
         }
-        /* FIX: Ensure loading container stretches across the full grid */
         #product-grid > #loading-products {
             grid-column: 1 / -1;
         }
+        
+        /* NEW: Pill Wrapper fixed position */
+        #cut-pill-filter-bar-wrapper {
+            top: 9.5rem; /* Below the tabs header */
+            z-index: 9;
+        }
+        /* Style for star filter buttons */
+        /* REMOVED gray background for rating pill */
+        .rating-pill-button {
+            transition: background-color 0.15s;
+            border: 1px solid transparent;
+        }
+        .rating-pill-button:hover {
+            border: 1px solid #d1fae5; /* subtle hover border */
+        }
+        .rating-active {
+            /* Applied to the container for the selected rating to provide feedback */
+            background-color: #fef3c7 !important; /* amber-100 */
+            border-color: #fcd34d !important; /* amber-300 */
+            font-weight: 600;
+        }
 
+        /* Custom Range Slider Styling (to simulate a joined slider) */
+        .price-slider-wrapper {
+            position: relative;
+            height: 40px;
+            padding-top: 15px;
+        }
+        .price-slider-wrapper input[type=range] {
+            position: absolute;
+            width: 100%;
+            height: 5px;
+            background: transparent;
+            pointer-events: none; /* Allows clicks to pass through */
+            -webkit-appearance: none;
+        }
+        .price-slider-wrapper input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+            background: var(--gmg-green);
+            cursor: pointer;
+            pointer-events: all;
+            margin-top: -5px; /* Adjust based on track height */
+        }
+        .price-slider-wrapper .slider-track {
+            position: absolute;
+            width: 100%;
+            height: 6px;
+            border-radius: 5px;
+            background: #e5e7eb; /* Light grey track */
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        .price-slider-wrapper .slider-range {
+            position: absolute;
+            height: 6px;
+            background: var(--gmg-green);
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        /* Ensure the two thumbs sit on top of each other */
+        #range-max { z-index: 2; }
+        #range-min { z-index: 3; }
+        
+        /* NEW: Micro-Interaction Styles */
+        .add-to-cart-btn-animate {
+            transition: transform 0.1s ease-out; /* Soft scale-up/down */
+        }
+        .button-clicked {
+            transform: scale(0.95); /* Soft push effect */
+        }
+        
+        .cart-highlight {
+            animation: cart-bounce 0.5s ease-out;
+        }
+        @keyframes cart-bounce {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.15); }
+            100% { transform: scale(1); }
+        }
     </style>
 </head>
 <body class="min-h-screen flex flex-col">
@@ -153,45 +239,128 @@
                     <div class="text-gray-500 p-2">Loading product categories...</div>
                 </div>
 
+                <!-- NEW: Cut Pill/Tag Filter Bar with Scroll Buttons -->
+                <div id="cut-pill-filter-bar-wrapper" class="bg-white p-3 rounded-xl card-shadow mb-6 sticky hidden sm:block z-10">
+                    <div class="flex items-center">
+                        <span class="text-sm font-semibold text-gray-600 mr-4 whitespace-nowrap hidden md:block">Filter by Cut:</span>
+                        
+                        <!-- Left Scroll Button -->
+                        <button id="pill-scroll-left" onclick="scrollPills(-150)" disabled class="p-1 rounded-full text-gray-500 hover:bg-gray-200 transition disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0">
+                            <i data-lucide="chevron-left" class="w-5 h-5"></i>
+                        </button>
+
+                        <!-- Pill List Container (The actual scrolling element) -->
+                        <div id="pill-list-container" class="flex-grow overflow-x-hidden">
+                            <div id="pill-list-inner" class="flex space-x-2 py-1 whitespace-nowrap">
+                                <!-- Pills will be injected here -->
+                            </div>
+                        </div>
+
+                        <!-- Right Scroll Button -->
+                        <button id="pill-scroll-right" onclick="scrollPills(150)" disabled class="p-1 rounded-full text-gray-500 hover:bg-gray-200 transition disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0">
+                            <i data-lucide="chevron-right" class="w-5 h-5"></i>
+                        </button>
+                    </div>
+                </div>
+
                 <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
 
-                    <!-- Filter / Search Sidebar (Now for the active tab) -->
+                    <!-- Filter / Search Sidebar -->
                     <div class="lg:col-span-1 bg-white p-6 rounded-xl card-shadow h-fit sticky filter-sidebar-sticky">
-                        <h2 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                            <i data-lucide="search" class="w-5 h-5 mr-2 text-emerald-600"></i>
-                            Quick Search
-                        </h2>
                         
-                        <!-- Search Input -->
+                        <!-- Quick Search -->
                         <div class="mb-6 border-b pb-4">
-                            <label for="search-input" class="block text-sm font-medium text-gray-700 mb-1">Search SKU/Name</label>
+                            <h2 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                                <i data-lucide="search" class="w-5 h-5 mr-2 text-emerald-600"></i>
+                                Quick Search
+                            </h2>
+                            <label for="search-input" class="block text-sm font-medium text-gray-700 mb-1">SKU/Name/Brand</label>
                             <input type="text" id="search-input" placeholder="Search within current type..." class="w-full p-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500">
                         </div>
 
-                        <!-- Cut Filters (Faceted Search Checkboxes - Dynamic based on active tab) -->
-                        <div class="mb-4">
+                        <!-- Price Range Filter (UPDATED: Removed AED from heading) -->
+                        <div class="mb-6 border-b pb-4">
                             <h2 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                                <i data-lucide="cut" class="w-5 h-5 mr-2 text-emerald-600"></i>
-                                Cut Filters
+                                <i data-lucide="dollar-sign" class="w-5 h-5 mr-2 text-emerald-600"></i>
+                                Price Range
                             </h2>
-                            <div id="filter-cut-container" class="space-y-2 text-sm">
-                                <!-- Checkboxes for cuts will be injected here -->
-                                <p class="text-gray-400">Select a category...</p>
+                            <!-- Price Display -->
+                            <div class="flex justify-between text-sm font-medium text-gray-700 mb-2">
+                                <span id="price-min-display">AED 15.00</span>
+                                <span id="price-max-display">AED 850.00</span>
+                            </div>
+
+                            <!-- Dual Range Slider -->
+                            <div class="price-slider-wrapper">
+                                <div class="slider-track"></div>
+                                <div id="slider-range-fill" class="slider-range"></div>
+
+                                <input type="range" id="range-min" min="0" max="1000" value="0" 
+                                       oninput="handleSliderChange(this.id)" 
+                                       class="z-30">
+                                <input type="range" id="range-max" min="0" max="1000" value="1000" 
+                                       oninput="handleSliderChange(this.id)" 
+                                       class="z-20">
                             </div>
                         </div>
+
+                        <!-- Rating Filter (Cleaned up labels and backgrounds) -->
+                        <div class="mb-4">
+                            <h2 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                                <i data-lucide="star" class="w-5 h-5 mr-2 text-yellow-500 fill-yellow-500"></i>
+                                Min Rating
+                            </h2>
+                            <div id="rating-filter-container" class="flex flex-col space-y-2">
+                                <!-- Static HTML updated for cleaner style -->
+                                <button onclick="handleRatingChange(5.0)" data-rating="5.0" class="rating-pill-button w-full p-2 rounded-lg transition flex items-center justify-center hover:bg-gray-50">
+                                    <div class="flex items-center space-x-1">
+                                        <i data-lucide="star" class="w-4 h-4 fill-yellow-500 text-yellow-500"></i>
+                                        <i data-lucide="star" class="w-4 h-4 fill-yellow-500 text-yellow-500"></i>
+                                        <i data-lucide="star" class="w-4 h-4 fill-yellow-500 text-yellow-500"></i>
+                                        <i data-lucide="star" class="w-4 h-4 fill-yellow-500 text-yellow-500"></i>
+                                        <i data-lucide="star" class="w-4 h-4 fill-yellow-500 text-yellow-500"></i>
+                                    </div>
+                                </button>
+                                <button onclick="handleRatingChange(4.5)" data-rating="4.5" class="rating-pill-button w-full p-2 rounded-lg transition flex items-center justify-center hover:bg-gray-50">
+                                    <div class="flex items-center space-x-1">
+                                        <i data-lucide="star" class="w-4 h-4 fill-yellow-500 text-yellow-500"></i>
+                                        <i data-lucide="star" class="w-4 h-4 fill-yellow-500 text-yellow-500"></i>
+                                        <i data-lucide="star" class="w-4 h-4 fill-yellow-500 text-yellow-500"></i>
+                                        <i data-lucide="star" class="w-4 h-4 fill-yellow-500 text-yellow-500"></i>
+                                        <i data-lucide="star-half" class="w-4 h-4 fill-yellow-500 text-yellow-500"></i>
+                                    </div>
+                                </button>
+                                <button onclick="handleRatingChange(4.0)" data-rating="4.0" class="rating-pill-button w-full p-2 rounded-lg transition flex items-center justify-center hover:bg-gray-50">
+                                    <div class="flex items-center space-x-1">
+                                        <i data-lucide="star" class="w-4 h-4 fill-yellow-500 text-yellow-500"></i>
+                                        <i data-lucide="star" class="w-4 h-4 fill-yellow-500 text-yellow-500"></i>
+                                        <i data-lucide="star" class="w-4 h-4 fill-yellow-500 text-yellow-500"></i>
+                                        <i data-lucide="star" class="w-4 h-4 fill-yellow-500 text-yellow-500"></i>
+                                        <i data-lucide="star" class="w-4 h-4 text-gray-300"></i>
+                                    </div>
+                                </button>
+                                <button onclick="handleRatingChange(0)" data-rating="0" class="rating-pill-button w-full p-2 rounded-lg transition flex items-center justify-center text-gray-700 rating-active hover:bg-gray-50">
+                                    All Products
+                                </button>
+                            </div>
+                        </div>
+
                     </div>
 
                     <!-- Product Grid Container (Now holds sections) -->
                     <div class="lg:col-span-3">
-                        <div id="product-grid" class="space-y-8">
-                            <!-- Product sections (headings + grid) will be injected here -->
-                            <div class="col-span-full text-center py-10 text-gray-500" id="loading-products">
-                                <i data-lucide="loader" class="w-8 h-8 mx-auto animate-spin text-emerald-500 mb-2"></i>
-                                Loading products...
+                        <!-- Wrapper for smooth scrolling on filter update -->
+                        <div id="product-grid-wrapper" class="pt-2 sm:pt-1 md:pt-2 lg:pt-40 -mt-36 transition-all duration-500">
+                            <div id="product-grid" class="space-y-8">
+                                <!-- Product sections (headings + grid) will be injected here -->
+                                <div class="col-span-full text-center py-10 text-gray-500" id="loading-products">
+                                    <i data-lucide="loader" class="w-8 h-8 mx-auto animate-spin text-emerald-500 mb-2"></i>
+                                    Loading products...
+                                </div>
                             </div>
-                        </div>
-                        <div id="no-products" class="hidden col-span-full text-center py-10 text-gray-500 text-lg font-medium">
-                            No products match your current search criteria.
+                            <div id="no-products" class="hidden col-span-full text-center py-10 text-gray-500 text-lg font-medium">
+                                No products match your current search criteria.
+                            </div>
                         </div>
                     </div>
 
@@ -341,7 +510,7 @@
                                     <i data-lucide="plus" class="w-4 h-4"></i>
                                 </button>
                             </div>
-                            <button id="detail-add-to-cart-btn" class="w-full bg-emerald-600 text-white p-3 rounded-lg hover:bg-emerald-700 transition font-bold mt-4">
+                            <button id="detail-add-to-cart-btn" class="w-full bg-emerald-600 text-white p-3 rounded-lg hover:bg-emerald-700 transition font-bold mt-4 add-to-cart-btn-animate">
                                 Add to Cart
                             </button>
                         </div>
@@ -374,34 +543,36 @@
         // Initial Mock Data Setup (Used instead of loading from Firebase)
         const defaultImageUrl = "https://placehold.co/100x100/34D399/FFFFFF/png?text=GMG+Meat";
         
-        // EXPANDED PRODUCT LIST (50+ SKUS)
+        // EXPANDED PRODUCT LIST (50+ SKUS) - Sourced from Farm Fresh examples
         window.products = [
-            // === BEEF (18 SKUs) ===
-            { id: 'prod1', sku: 'BEEF-RIBEYE-PRM-10KG', name: 'Premium Beef Ribeye Steak (Frozen)', brand: 'GMG Select', type: 'Beef', cut: 'Steak', unit: 'kg', unitPrice: 850.00, inventory: 50, imageUrl: defaultImageUrl, rating: 4.8, description: "Highly marbled, tender Ribeye steak, individually vacuum-sealed and flash-frozen. Ideal for high-end restaurants." },
-            { id: 'prod4', sku: 'BEEF-TENDER-WAG-1KG', name: 'Wagyu Beef Tenderloin A5', brand: 'Kobe Reserve', type: 'Beef', cut: 'Steak', unit: 'g', unitPrice: 15.00, inventory: 20, imageUrl: defaultImageUrl, rating: 5.0, description: "The pinnacle of beef quality. Genuine A5 Wagyu Tenderloin." },
-            { id: 'prod6', sku: 'BEEF-GROUND-8020-5KG', name: '80/20 Lean Ground Beef', brand: 'GMG Select', type: 'Beef', cut: 'Ground', unit: 'kg', unitPrice: 350.00, inventory: 150, imageUrl: defaultImageUrl, rating: 4.1, description: "Standard 80% lean, 20% fat ground beef blend. Versatile for burgers and meatballs." },
-            { id: 'prod9', sku: 'BEEF-FILLET-WHL-5KG', name: 'Frozen Beef Fillet Whole Muscle', brand: 'GMG Select', type: 'Beef', cut: 'Loin', unit: 'box', unitPrice: 700.00, inventory: 40, imageUrl: defaultImageUrl, rating: 4.9, description: "Whole frozen beef fillet, suitable for slicing into filet mignon or chateaubriand." },
+            // === BEEF (20 SKUs) ===
+            { id: 'prod1', sku: 'BEEF-RIBEYE-AAA-10KG', name: 'AAA Beef Ribeye Steak (Frozen)', brand: 'GMG Select', type: 'Beef', cut: 'Steak', unit: 'kg', unitPrice: 850.00, inventory: 50, imageUrl: defaultImageUrl, rating: 4.8, description: "Highly marbled, tender Ribeye steak, flash-frozen. Ideal for high-end restaurants." },
+            { id: 'prod4', sku: 'BEEF-TENDER-WAG-1KG', name: 'Wagyu Beef Tenderloin A5', brand: 'Kobe Reserve', type: 'Beef', cut: 'Tenderloin', unit: 'g', unitPrice: 15.00, inventory: 20, imageUrl: defaultImageUrl, rating: 5.0, description: "The pinnacle of beef quality. Genuine A5 Wagyu Tenderloin." },
+            { id: 'prod6', sku: 'BEEF-MINCE-REG-5KG', name: 'Regular Ground Beef Mince (80/20)', brand: 'GMG Select', type: 'Beef', cut: 'Mince', unit: 'kg', unitPrice: 350.00, inventory: 150, imageUrl: defaultImageUrl, rating: 4.1, description: "Standard 80% lean, 20% fat ground beef blend. Versatile for burgers and meatballs." },
+            { id: 'prod9', sku: 'BEEF-FILLET-WHL-5KG', name: 'Whole Beef Fillet Muscle (Frozen)', brand: 'GMG Select', type: 'Beef', cut: 'Loin', unit: 'box', unitPrice: 700.00, inventory: 40, imageUrl: defaultImageUrl, rating: 4.9, description: "Whole frozen beef fillet, suitable for slicing into filet mignon or chateaubriand." },
             { id: 'prod10', sku: 'BEEF-SIRLOIN-CHLD-1KG', name: 'Chilled AAA Sirloin Steak', brand: 'Prime Cut', type: 'Beef', cut: 'Steak', unit: 'kg', unitPrice: 55.00, inventory: 110, imageUrl: defaultImageUrl, rating: 4.5, description: "AAA Sirloin, great balance of flavor and tenderness. Sold as individual 1kg pieces." },
-            { id: 'prod11', sku: 'BEEF-SHORTS-PRM-15KG', name: 'Premium Short Ribs (Bone-in)', brand: 'GMG Select', type: 'Beef', cut: 'Ribs', unit: 'box', unitPrice: 650.00, inventory: 35, imageUrl: defaultImageUrl, rating: 4.7, description: "Thick, meaty bone-in short ribs, perfect for slow cooking and smoking." },
-            { id: 'prod12', sku: 'BEEF-BRISKET-FRZ-5KG', name: 'Frozen Beef Brisket Flat', brand: 'Smokehouse', type: 'Beef', cut: 'Breast', unit: 'kg', unitPrice: 380.00, inventory: 85, imageUrl: defaultImageUrl, rating: 4.6, description: "Select Beef Brisket flat cut, ideal for slicing or corned beef preparation." },
-            { id: 'prod13', sku: 'BEEF-DICED-1KG', name: 'Diced Beef Cubes (Stewing)', brand: 'ValuePak', type: 'Beef', cut: 'Cube', unit: 'kg', unitPrice: 45.00, inventory: 160, imageUrl: defaultImageUrl, rating: 3.8, description: "Economical diced beef pieces for curries and slow-cooked stews." },
-            { id: 'prod14', sku: 'BEEF-GROUND-9010-5KG', name: '90/10 Lean Ground Beef', brand: 'GMG Select', type: 'Beef', cut: 'Ground', unit: 'kg', unitPrice: 420.00, inventory: 95, imageUrl: defaultImageUrl, rating: 4.3, description: "Extra lean ground beef blend for lighter meals and high-protein content." },
-            { id: 'prod15', sku: 'BEEF-OXL-WHL-1KG', name: 'Whole Beef Oxtail (Frozen)', brand: 'Prime Cut', type: 'Beef', cut: 'Tail', unit: 'kg', unitPrice: 75.00, inventory: 40, imageUrl: defaultImageUrl, rating: 4.0, description: "Frozen whole beef oxtail, great for soups and rich gravy." },
+            { id: 'prod11', sku: 'BEEF-SHORTS-BONE-15KG', name: 'Premium Short Ribs (Bone-in)', brand: 'GMG Select', type: 'Beef', cut: 'Ribs', unit: 'box', unitPrice: 650.00, inventory: 35, imageUrl: defaultImageUrl, rating: 4.7, description: "Thick, meaty bone-in short ribs, perfect for slow cooking and smoking." },
+            { id: 'prod12', sku: 'BEEF-BRISKET-FLT-5KG', name: 'Beef Brisket Flat Cut (Frozen)', brand: 'Smokehouse', type: 'Beef', cut: 'Roast', unit: 'kg', unitPrice: 380.00, inventory: 85, imageUrl: defaultImageUrl, rating: 4.6, description: "Select Beef Brisket flat cut, ideal for slicing or corned beef preparation." },
+            { id: 'prod13', sku: 'BEEF-DICED-STEW-1KG', name: 'Diced Beef Cubes (Stewing Grade)', brand: 'ValuePak', type: 'Beef', cut: 'Cube', unit: 'kg', unitPrice: 45.00, inventory: 160, imageUrl: defaultImageUrl, rating: 3.8, description: "Economical diced beef pieces for curries and slow-cooked stews." },
+            { id: 'prod14', sku: 'BEEF-MINCE-LEAN-5KG', name: 'Lean Ground Beef Mince (90/10)', brand: 'GMG Select', type: 'Beef', cut: 'Mince', unit: 'kg', unitPrice: 420.00, inventory: 95, imageUrl: defaultImageUrl, rating: 4.3, description: "Extra lean ground beef blend for lighter meals." },
+            { id: 'prod15', sku: 'BEEF-OXT-WHL-1KG', name: 'Whole Beef Oxtail (Frozen)', brand: 'Prime Cut', type: 'Beef', cut: 'Bone', unit: 'kg', unitPrice: 75.00, inventory: 40, imageUrl: defaultImageUrl, rating: 4.0, description: "Frozen whole beef oxtail, great for soups and rich gravy." },
             { id: 'prod16', sku: 'BEEF-FLANK-FRZ-5KG', name: 'Frozen Flank Steak Muscle', brand: 'Prime Cut', type: 'Beef', cut: 'Steak', unit: 'kg', unitPrice: 410.00, inventory: 60, imageUrl: defaultImageUrl, rating: 4.4, description: "Flank steak, excellent for marinades and grilling, packed in 5kg portions." },
-            { id: 'prod17', sku: 'BEEF-ROAST-CHLD-2KG', name: 'Chilled Round Roast', brand: 'GMG Select', type: 'Beef', cut: 'Roast', unit: 'kg', unitPrice: 110.00, inventory: 70, imageUrl: defaultImageUrl, rating: 4.2, description: "Lean and flavorful Round Roast, excellent value for traditional roasting." },
+            { id: 'prod17', sku: 'BEEF-ROAST-RND-2KG', name: 'Chilled Round Roast', brand: 'GMG Select', type: 'Beef', cut: 'Roast', unit: 'kg', unitPrice: 110.00, inventory: 70, imageUrl: defaultImageUrl, rating: 4.2, description: "Lean and flavorful Round Roast, excellent value for traditional roasting." },
             { id: 'prod18', sku: 'BEEF-T-BONE-FRZ-1KG', name: 'T-Bone Steak (Frozen)', brand: 'Butcher Block', type: 'Beef', cut: 'Steak', unit: 'piece', unitPrice: 75.00, inventory: 90, imageUrl: defaultImageUrl, rating: 4.5, description: "Individually packed, bone-in T-Bone steak." },
             { id: 'prod19', sku: 'BEEF-SKIRT-PRM-1KG', name: 'Premium Skirt Steak (Outside)', brand: 'Prime Cut', type: 'Beef', cut: 'Steak', unit: 'kg', unitPrice: 95.00, inventory: 55, imageUrl: defaultImageUrl, rating: 4.7, description: "Outside skirt steak, ideal for fajitas and quick grilling." },
             { id: 'prod20', sku: 'BEEF-DICED-PRM-5KG', name: 'Premium Beef Cubes (Chilled)', brand: 'GMG Select', type: 'Beef', cut: 'Cube', unit: 'kg', unitPrice: 320.00, inventory: 80, imageUrl: defaultImageUrl, rating: 4.5, description: "High-quality chilled beef cubes, excellent for goulash or high-end stews." },
-            { id: 'prod21', sku: 'BEEF-BONE-MARR-1KG', name: 'Beef Marrow Bones', brand: 'ValuePak', type: 'Beef', cut: 'Bone', unit: 'kg', unitPrice: 25.00, inventory: 150, imageUrl: defaultImageUrl, rating: 4.0, description: "Assorted marrow bones for broth and stock making." },
+            { id: 'prod21', sku: 'BEEF-MARROW-1KG', name: 'Beef Marrow Bones', brand: 'ValuePak', type: 'Beef', cut: 'Bone', unit: 'kg', unitPrice: 25.00, inventory: 150, imageUrl: defaultImageUrl, rating: 4.0, description: "Assorted marrow bones for broth and stock making." },
             { id: 'prod22', sku: 'BEEF-CUBE-KABOB-5KG', name: 'Beef Kabob Cubes', brand: 'GMG Select', type: 'Beef', cut: 'Cube', unit: 'kg', unitPrice: 340.00, inventory: 70, imageUrl: defaultImageUrl, rating: 4.3, description: "Uniformly cut cubes, perfect for skewers and grilling." },
-            { id: 'prod23', sku: 'BEEF-RIB-EYE-SLIC-1KG', name: 'Sliced Beef Ribeye (Shabu)', brand: 'Prime Cut', type: 'Beef', cut: 'Steak', unit: 'g', unitPrice: 12.00, inventory: 40, imageUrl: defaultImageUrl, rating: 4.9, description: "Thinly sliced Ribeye for hot pot or quick cooking." },
+            { id: 'prod23', sku: 'BEEF-RIB-EYE-SLIC-1KG', name: 'Sliced Beef Ribeye (Shabu)', brand: 'Prime Cut', type: 'Beef', cut: 'Slice', unit: 'g', unitPrice: 12.00, inventory: 40, imageUrl: defaultImageUrl, rating: 4.9, description: "Thinly sliced Ribeye for hot pot or quick cooking." },
+            { id: 'prod56', sku: 'BEEF-PATTIES-QTR-1KG', name: 'Quarter Pound Beef Patties (8x 125g)', brand: 'ChefPro', type: 'Beef', cut: 'Patties', unit: 'pack', unitPrice: 65.00, inventory: 200, imageUrl: defaultImageUrl, rating: 4.5, description: "Frozen, ready-to-cook quarter pounder beef patties." },
+            { id: 'prod57', sku: 'BEEF-RUMP-FRZ-5KG', name: 'Beef Rump Steak Muscle (Frozen)', brand: 'Prime Cut', type: 'Beef', cut: 'Steak', unit: 'kg', unitPrice: 450.00, inventory: 55, imageUrl: defaultImageUrl, rating: 4.6, description: "Large frozen rump steak muscle for roasting or steak preparation." },
 
-            // === LAMB (14 SKUs) ===
+            // === LAMB (15 SKUs) ===
             { id: 'prod2', sku: 'LAMB-LOIN-CHLD-5KG', name: 'Chilled Australian Lamb Loin', brand: 'Down Under', type: 'Lamb', cut: 'Loin', unit: 'kg', unitPrice: 520.00, inventory: 80, imageUrl: defaultImageUrl, rating: 4.5, description: "Prime grade, chilled lamb loin, perfect for carving." },
-            { id: 'prod5', sku: 'LAMB-SHANK-FRZ-10KG', name: 'Frozen New Zealand Lamb Shank', brand: 'Down Under', type: 'Lamb', cut: 'Loin', unit: 'box', unitPrice: 480.00, inventory: 65, imageUrl: defaultImageUrl, rating: 3.9, description: "Classic New Zealand lamb shanks, excellent for slow cooking." },
+            { id: 'prod5', sku: 'LAMB-SHANK-FRZ-10KG', name: 'Frozen New Zealand Lamb Shank', brand: 'Down Under', type: 'Lamb', cut: 'Shank', unit: 'box', unitPrice: 480.00, inventory: 65, imageUrl: defaultImageUrl, rating: 3.9, description: "Classic New Zealand lamb shanks, excellent for slow cooking." },
             { id: 'prod8', sku: 'LAMB-CUBE-CHLD-1KG', name: 'Chilled Lamb Diced Cubes', brand: 'Down Under', type: 'Lamb', cut: 'Cube', unit: 'kg', unitPrice: 400.00, inventory: 90, imageUrl: defaultImageUrl, rating: 4.7, description: "Pre-diced, chilled lamb cubes ready for kebabs or curries." },
-            { id: 'prod24', sku: 'LAMB-RACK-FRZ-1KG', name: 'French Trimmed Lamb Rack (Frozen)', brand: 'Prime Cut', type: 'Lamb', cut: 'Ribs', unit: 'piece', unitPrice: 95.00, inventory: 50, imageUrl: defaultImageUrl, rating: 4.9, description: "Individually frozen, French trimmed lamb rack, perfect for fine dining." },
-            { id: 'prod25', sku: 'LAMB-GROUND-8020-5KG', name: 'Ground Lamb 80/20', brand: 'Down Under', type: 'Lamb', cut: 'Ground', unit: 'kg', unitPrice: 380.00, inventory: 110, imageUrl: defaultImageUrl, rating: 4.3, description: "Flavorsome ground lamb blend, ideal for kofta and savory pies." },
+            { id: 'prod24', sku: 'LAMB-RACK-FRZ-1KG', name: 'French Trimmed Lamb Rack (Frozen)', brand: 'Prime Cut', type: 'Lamb', cut: 'Rack', unit: 'piece', unitPrice: 95.00, inventory: 50, imageUrl: defaultImageUrl, rating: 4.9, description: "Individually frozen, French trimmed lamb rack, perfect for fine dining." },
+            { id: 'prod25', sku: 'LAMB-MINCE-REG-5KG', name: 'Ground Lamb Mince (80/20)', brand: 'Down Under', type: 'Lamb', cut: 'Mince', unit: 'kg', unitPrice: 380.00, inventory: 110, imageUrl: defaultImageUrl, rating: 4.3, description: "Flavorsome ground lamb blend, ideal for kofta and savory pies." },
             { id: 'prod26', sku: 'LAMB-LEG-BONL-2KG', name: 'Boneless Lamb Leg Roast', brand: 'GMG Select', type: 'Lamb', cut: 'Roast', unit: 'kg', unitPrice: 150.00, inventory: 75, imageUrl: defaultImageUrl, rating: 4.6, description: "Easy-to-carve boneless lamb leg roast, great for catering." },
             { id: 'prod27', sku: 'LAMB-CHOP-LOIN-1KG', name: 'Lamb Loin Chops (Chilled)', brand: 'Butcher Block', type: 'Lamb', cut: 'Chop', unit: 'kg', unitPrice: 85.00, inventory: 60, imageUrl: defaultImageUrl, rating: 4.4, description: "Thick-cut loin chops, ready for grilling or pan-searing." },
             { id: 'prod28', sku: 'LAMB-SHOULDER-DICE-5KG', name: 'Lamb Shoulder Diced (Frozen)', brand: 'ValuePak', type: 'Lamb', cut: 'Cube', unit: 'kg', unitPrice: 350.00, inventory: 130, imageUrl: defaultImageUrl, rating: 3.7, description: "Cost-effective diced lamb shoulder for large volume use." },
@@ -411,15 +582,16 @@
             { id: 'prod32', sku: 'LAMB-KABOB-PRM-1KG', name: 'Lamb Kabob Skewers', brand: 'Prime Cut', type: 'Lamb', cut: 'Cube', unit: 'piece', unitPrice: 8.00, inventory: 120, imageUrl: defaultImageUrl, rating: 4.6, description: "Pre-marinated lamb cubes on skewers, ready for the grill." },
             { id: 'prod33', sku: 'LAMB-RIB-BREAST-10KG', name: 'Lamb Rib and Breast Flaps', brand: 'ValuePak', type: 'Lamb', cut: 'Ribs', unit: 'box', unitPrice: 350.00, inventory: 55, imageUrl: defaultImageUrl, rating: 3.8, description: "Economical lamb ribs and breast flaps for value cooking." },
             { id: 'prod34', sku: 'LAMB-FILLET-SLCT-1KG', name: 'Selected Lamb Fillet Muscle', brand: 'GMG Select', type: 'Lamb', cut: 'Loin', unit: 'kg', unitPrice: 120.00, inventory: 40, imageUrl: defaultImageUrl, rating: 4.7, description: "Lean and tender whole lamb fillet, great for quick cooking." },
-            
-            // === CHICKEN (14 SKUs) ===
-            { id: 'prod3', sku: 'CHICKEN-GROUND-1KG', name: 'Bulk Ground Chicken Breast (Chilled)', brand: 'PoultryPro', type: 'Chicken', cut: 'Ground', unit: 'kg', unitPrice: 85.00, inventory: 120, imageUrl: defaultImageUrl, rating: 4.2, description: "Lean ground chicken breast, suitable for health-conscious menus." },
-            { id: 'prod7', sku: 'CHICKEN-THIGH-FRZ', name: 'Frozen Chicken Thighs (Bone-in)', brand: 'PoultryPro', type: 'Chicken', cut: 'Thigh', unit: 'piece', unitPrice: 2.50, inventory: 8, imageUrl: defaultImageUrl, rating: 4.6, description: "Individually frozen, bone-in chicken thighs. A cost-effective and flavorful option." }, 
+            { id: 'prod58', sku: 'LAMB-STEW-BONE-1KG', name: 'Lamb Stew Meat (Bone-in)', brand: 'Butcher Block', type: 'Lamb', cut: 'Stew', unit: 'kg', unitPrice: 65.00, inventory: 70, imageUrl: defaultImageUrl, rating: 4.1, description: "Bone-in lamb pieces ideal for making hearty, rich stews." },
+
+            // === CHICKEN (15 SKUs) ===
+            { id: 'prod3', sku: 'CHICKEN-MINCE-1KG', name: 'Bulk Ground Chicken Breast (Chilled)', brand: 'PoultryPro', type: 'Chicken', cut: 'Mince', unit: 'kg', unitPrice: 85.00, inventory: 120, imageUrl: defaultImageUrl, rating: 4.2, description: "Lean ground chicken breast, suitable for health-conscious menus." },
+            { id: 'prod7', sku: 'CHICKEN-THIGH-BONE-1KG', name: 'Frozen Chicken Thighs (Bone-in)', brand: 'PoultryPro', type: 'Chicken', cut: 'Thigh', unit: 'piece', unitPrice: 2.50, inventory: 8, imageUrl: defaultImageUrl, rating: 4.6, description: "Individually frozen, bone-in chicken thighs. A cost-effective and flavorful option." }, 
             { id: 'prod35', sku: 'CHICKEN-BRST-BONL-2KG', name: 'Boneless Chicken Breast Fillet', brand: 'GMG Select', type: 'Chicken', cut: 'Breast', unit: 'kg', unitPrice: 15.00, inventory: 300, imageUrl: defaultImageUrl, rating: 4.9, description: "High-quality boneless, skinless chicken breast fillet. Frozen IQF." },
             { id: 'prod36', sku: 'CHICKEN-WINGS-BULK-5KG', name: 'Chicken Wings (3-Joint, Bulk)', brand: 'ValuePak', type: 'Chicken', cut: 'Wing', unit: 'box', unitPrice: 120.00, inventory: 180, imageUrl: defaultImageUrl, rating: 4.0, description: "Bulk box of 3-joint chicken wings, great for appetizers." },
             { id: 'prod37', sku: 'CHICKEN-DRUM-CHLD-1KG', name: 'Chilled Chicken Drumsticks', brand: 'PoultryPro', type: 'Chicken', cut: 'Leg', unit: 'kg', unitPrice: 8.00, inventory: 250, imageUrl: defaultImageUrl, rating: 4.3, description: "Fresh, chilled chicken drumsticks, excellent for frying or baking." },
             { id: 'prod38', sku: 'CHICKEN-WHOLE-1KG', name: 'Whole Chicken (1kg avg)', brand: 'PoultryPro', type: 'Chicken', cut: 'Whole', unit: 'piece', unitPrice: 12.00, inventory: 90, imageUrl: defaultImageUrl, rating: 4.4, description: "Whole chicken, ideal for roasting or rotisserie." },
-            { id: 'prod39', sku: 'CHICKEN-MINCE-PRM-1KG', name: 'Premium Chicken Mince (Lean)', brand: 'GMG Select', type: 'Chicken', cut: 'Ground', unit: 'kg', unitPrice: 90.00, inventory: 100, imageUrl: defaultImageUrl, rating: 4.5, description: "Very lean, high-quality chicken mince, vacuum sealed." },
+            { id: 'prod39', sku: 'CHICKEN-MINCE-PRM-1KG', name: 'Premium Chicken Mince (Lean)', brand: 'GMG Select', type: 'Chicken', cut: 'Mince', unit: 'kg', unitPrice: 90.00, inventory: 100, imageUrl: defaultImageUrl, rating: 4.5, description: "Very lean, high-quality chicken mince, vacuum sealed." },
             { id: 'prod40', sku: 'CHICKEN-LEGS-FRZ-10KG', name: 'Frozen Chicken Leg Quarters', brand: 'ValuePak', type: 'Chicken', cut: 'Leg', unit: 'box', unitPrice: 150.00, inventory: 60, imageUrl: defaultImageUrl, rating: 3.9, description: "Bulk frozen leg quarters, budget-friendly option." },
             { id: 'prod41', sku: 'CHICKEN-TENDERS-1KG', name: 'Chicken Breast Tenders (IQF)', brand: 'PoultryPro', type: 'Chicken', cut: 'Breast', unit: 'kg', unitPrice: 18.00, inventory: 150, imageUrl: defaultImageUrl, rating: 4.7, description: "Individually Quick Frozen (IQF) tenders, easy to thaw and cook." },
             { id: 'prod42', sku: 'CHICKEN-FEET-BULK-5KG', name: 'Chicken Feet (Bulk)', brand: 'ValuePak', type: 'Chicken', cut: 'Bone', unit: 'kg', unitPrice: 5.00, inventory: 200, imageUrl: defaultImageUrl, rating: 3.5, description: "For stock or specialized cuisine." },
@@ -427,14 +599,28 @@
             { id: 'prod44', sku: 'CHICKEN-BACKS-5KG', name: 'Chicken Backs for Stock', brand: 'ValuePak', type: 'Chicken', cut: 'Bone', unit: 'kg', unitPrice: 6.00, inventory: 170, imageUrl: defaultImageUrl, rating: 3.6, description: "Used primarily for chicken stock base." },
             { id: 'prod45', sku: 'CHICKEN-THIGH-BONL-2KG', name: 'Boneless Chicken Thigh (Skin On)', brand: 'Prime Cut', type: 'Chicken', cut: 'Thigh', unit: 'kg', unitPrice: 16.00, inventory: 110, imageUrl: defaultImageUrl, rating: 4.5, description: "Boneless thigh with skin for maximum flavor when roasting." },
             { id: 'prod46', sku: 'CHICKEN-STRIP-1KG', name: 'Chicken Breast Strips (Chilled)', brand: 'PoultryPro', type: 'Chicken', cut: 'Breast', unit: 'kg', unitPrice: 14.50, inventory: 160, imageUrl: defaultImageUrl, rating: 4.4, description: "Pre-sliced strips, ready for salads and wraps." },
+            { id: 'prod59', sku: 'CHICKEN-GRILLERS-1KG', name: 'Whole Chicken Grillers (Size 8)', brand: 'PoultryPro', type: 'Chicken', cut: 'Whole', unit: 'piece', unitPrice: 15.00, inventory: 80, imageUrl: defaultImageUrl, rating: 4.5, description: "Smaller whole chicken, ideal for grilling or single-serve roasting." },
 
-            // === PORK (4 SKUs - Added for Variety/Flexibility) ===
+            // === PROCESSED (11 SKUs) ===
+            { id: 'prod60', sku: 'BURG-WAGYU-125G-PACK', name: 'Wagyu Beef Burger Patties (4-pack)', brand: 'ChefPro', type: 'Processed', cut: 'Patties', unit: 'pack', unitPrice: 95.00, inventory: 70, imageUrl: defaultImageUrl, rating: 4.9, description: "Premium 125g Wagyu beef burgers, quick frozen." },
+            { id: 'prod61', sku: 'BURG-ANGUS-150G-PACK', name: 'Angus Beef Burger Patties (6-pack)', brand: 'ChefPro', type: 'Processed', cut: 'Patties', unit: 'pack', unitPrice: 80.00, inventory: 100, imageUrl: defaultImageUrl, rating: 4.6, description: "150g Angus beef patties, excellent for gourmet burgers." },
+            { id: 'prod62', sku: 'SAUS-CHICKEN-JUMBO', name: 'Jumbo Chicken Grill Sausage (German Style)', brand: 'ChefPro', type: 'Processed', cut: 'Sausage', unit: 'pack', unitPrice: 45.00, inventory: 150, imageUrl: defaultImageUrl, rating: 4.4, description: "Thick, German-style chicken sausages, great for BBQs." },
+            { id: 'prod63', sku: 'SAUS-BEEF-SMOKED', name: 'Jumbo Smoked Beef Sausage', brand: 'ChefPro', type: 'Processed', cut: 'Sausage', unit: 'pack', unitPrice: 50.00, inventory: 120, imageUrl: defaultImageUrl, rating: 4.5, description: "Smoked beef sausages, fully cooked and ready to heat." },
+            { id: 'prod64', sku: 'SAUS-BEEF-SPICY', name: 'Jumbo Spicy Beef Sausage', brand: 'ChefPro', type: 'Processed', cut: 'Sausage', unit: 'pack', unitPrice: 52.00, inventory: 90, imageUrl: defaultImageUrl, rating: 4.3, description: "Spicy beef sausages with chili flakes." },
+            { id: 'prod65', sku: 'SAUS-CHICKEN-CHILLI', name: 'Chicken Chilli Cheese Sausage', brand: 'ChefPro', type: 'Processed', cut: 'Sausage', unit: 'pack', unitPrice: 55.00, inventory: 80, imageUrl: defaultImageUrl, rating: 4.6, description: "Chicken sausages filled with cheese and chili." },
+            { id: 'prod66', sku: 'DELI-BACON-BEEF-5KG', name: 'Beef Bacon Rashers (Bulk)', brand: 'Butcher Block', type: 'Processed', cut: 'Deli', unit: 'kg', unitPrice: 150.00, inventory: 60, imageUrl: defaultImageUrl, rating: 4.1, description: "Thinly sliced, premium beef bacon, perfect for breakfast." },
+            { id: 'prod67', sku: 'DELI-SALAMI-CALA-1KG', name: 'Artisan Salami Calabrese', brand: 'Butcher Block', type: 'Processed', cut: 'Deli', unit: 'piece', unitPrice: 65.00, inventory: 40, imageUrl: defaultImageUrl, rating: 4.8, description: "Authentic dried salami, ready to slice." },
+            { id: 'prod68', sku: 'DELI-BILTONG-BEEF', name: 'Beef Biltong Strips (Spicy)', brand: 'Butcher Block', type: 'Processed', cut: 'Deli', unit: 'pack', unitPrice: 75.00, inventory: 110, imageUrl: defaultImageUrl, rating: 4.7, description: "South African style dried beef strips, high protein snack." },
+            { id: 'prod69', sku: 'DELI-HAM-BEEF-1KG', name: 'Premium Smoked Beef Ham', brand: 'GMG Select', type: 'Processed', cut: 'Deli', unit: 'kg', unitPrice: 120.00, inventory: 50, imageUrl: defaultImageUrl, rating: 4.4, description: "Whole muscle cooked and smoked beef ham, ideal for slicing." },
+            { id: 'prod70', sku: 'PORK-FRANKS-ORIG-5KG', name: 'Pork Franks - Original', brand: 'ChefPro', type: 'Processed', cut: 'Sausage', unit: 'kg', unitPrice: 190.00, inventory: 75, imageUrl: defaultImageUrl, rating: 4.2, description: "Classic pork frankfurters, perfect for hotdogs." },
+
+            // === PORK (4 SKUs) ===
             { id: 'prod47', sku: 'PORK-BELLY-SKN-2KG', name: 'Pork Belly Slab (Skin-on)', brand: 'Butcher Block', type: 'Pork', cut: 'Belly', unit: 'kg', unitPrice: 45.00, inventory: 60, imageUrl: defaultImageUrl, rating: 4.7, description: "Thick slab of pork belly, excellent for roasting or curing." },
             { id: 'prod48', sku: 'PORK-RIBS-SPARE-5KG', name: 'Spare Ribs (Frozen)', brand: 'Smokehouse', type: 'Pork', cut: 'Ribs', unit: 'box', unitPrice: 280.00, inventory: 45, imageUrl: defaultImageUrl, rating: 4.5, description: "Frozen spare ribs, great for BBQ and smoking." },
             { id: 'prod49', sku: 'PORK-LOIN-BONL-2KG', name: 'Boneless Pork Loin', brand: 'GMG Select', type: 'Pork', cut: 'Loin', unit: 'kg', unitPrice: 35.00, inventory: 70, imageUrl: defaultImageUrl, rating: 4.6, description: "Lean boneless pork loin, perfect for slicing or roasting." },
             { id: 'prod50', sku: 'PORK-DICED-1KG', name: 'Diced Pork Shoulder', brand: 'ValuePak', type: 'Pork', cut: 'Cube', unit: 'kg', unitPrice: 28.00, inventory: 100, imageUrl: defaultImageUrl, rating: 4.1, description: "Diced pork shoulder, ideal for stews, stir-fries, and kebab meat." },
             
-            // === SEAFOOD (5 SKUs - Showing the flexibility of the category system) ===
+            // === SEAFOOD (5 SKUs) ===
             { id: 'prod51', sku: 'FISH-SALMON-FILET-1KG', name: 'Atlantic Salmon Fillets (Skin On)', brand: 'AquaFresh', type: 'Seafood', cut: 'Fillet', unit: 'kg', unitPrice: 110.00, inventory: 90, imageUrl: defaultImageUrl, rating: 4.9, description: "Premium farmed Atlantic Salmon fillets, individually vacuum sealed." },
             { id: 'prod52', sku: 'SHRIMP-BLK-TIGER-1KG', name: 'Black Tiger Shrimp (26/30)', brand: 'OceanGold', type: 'Seafood', cut: 'Shellfish', unit: 'kg', unitPrice: 95.00, inventory: 120, imageUrl: defaultImageUrl, rating: 4.7, description: "26/30 count per kg, tail-on, peeled and deveined." },
             { id: 'prod53', sku: 'FISH-COD-PORTION-5KG', name: 'Cod Portions (Frozen Block)', brand: 'Northern Catch', type: 'Seafood', cut: 'Fillet', unit: 'box', unitPrice: 400.00, inventory: 50, imageUrl: defaultImageUrl, rating: 4.3, description: "5kg block of frozen, skinless, boneless cod portions." },
@@ -444,7 +630,7 @@
         
         window.distributorProfile = {
             creditLimit: 250000,
-            outstandingBalance: 1475.00, // Initial balance from mock orders below
+            outstandingBalance: 5680.00, // Updated initial balance based on new mock orders
         };
 
         // Static helper function to generate mock order IDs
@@ -452,19 +638,21 @@
 
         // Initial mock order data (Referencing expanded products)
         window.orders = [
-            // Delivered Order
-            { id: generateMockOrderId(), items: [{id:'prod1', quantity: 2}, {id:'prod35', quantity: 10}], totalAmount: 1850.00, status: 'Delivered', timestamp: new Date(Date.now() - 86400000 * 5) },
-            // Shipped Order (Contributes to outstanding balance)
-            { id: generateMockOrderId(), items: [{id:'prod11', quantity: 3}], totalAmount: 1950.00, status: 'Shipped', timestamp: new Date(Date.now() - 86400000 * 2) },
-            // Processing Order (Contributes to outstanding balance)
-            { id: generateMockOrderId(), items: [{id:'prod4', quantity: 100}, {id:'prod25', quantity: 1}], totalAmount: 1880.00, status: 'Processing', timestamp: new Date() }
+            // Delivered Order - Uses prod1 (Beef Ribeye) and prod35 (Chicken Breast)
+            { id: generateMockOrderId(), items: [{id:'prod1', quantity: 2, unit: 'kg'}, {id:'prod35', quantity: 10, unit: 'kg'}], totalAmount: 1850.00, status: 'Delivered', timestamp: new Date(Date.now() - 86400000 * 5) },
+            // Shipped Order - Uses prod11 (Beef Ribs)
+            { id: generateMockOrderId(), items: [{id:'prod11', quantity: 3, unit: 'box'}], totalAmount: 1950.00, status: 'Shipped', timestamp: new Date(Date.now() - 86400000 * 2) },
+            // Processing Order - Uses prod4 (Wagyu Tenderloin) and prod25 (Lamb Mince)
+            { id: generateMockOrderId(), items: [{id:'prod4', quantity: 100, unit: 'g'}, {id:'prod25', quantity: 5, unit: 'kg'}], totalAmount: 1880.00, status: 'Processing', timestamp: new Date() }
         ];
 
-        // Global state for active filters (Meat Type is now the activeTab)
+        // Global state for active filters
         window.activeFilters = {
             search: '',
-            type: [], 
-            cut: []
+            cut: [], 
+            minRating: 0, 
+            minPrice: null, 
+            maxPrice: null  
         };
         
         // State
@@ -492,14 +680,26 @@
         const formatCurrency = (amount) => {
             return `AED ${parseFloat(amount).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`;
         };
+        
+        // Utility: Calculate min/max price bounds from current product list
+        const getPriceBounds = () => {
+            if (window.products.length === 0) return { min: 0, max: 1000 };
+            const prices = window.products.map(p => p.unitPrice);
+            const min = Math.floor(Math.min(...prices));
+            const max = Math.ceil(Math.max(...prices));
+            // Ensure a reasonable max range for the slider UI
+            return { min: min, max: Math.max(1000, max) };
+        };
+
 
         // --- MOCK DATA INITIALIZATION (Synchronous) ---
         const initializeApplicationData = () => {
-            // Data is already loaded into global variables. Just render the views.
             renderProductTabs();
             renderDashboard();
-            renderOrderHistory(window.orders);
-
+            
+            // Initialize the Price Slider based on product bounds
+            initializePriceSlider();
+            
             const loadingEl = document.getElementById('loading-products');
             if (loadingEl) {
                 loadingEl.classList.add('hidden');
@@ -532,8 +732,7 @@
                 `;
             }).join('');
             
-            // Now that tabs are rendered, refresh filters and catalog
-            renderFilterCheckboxes();
+            renderCutPillFilters();
             renderProductCatalog();
         };
 
@@ -543,18 +742,73 @@
             const searchInput = document.getElementById('search-input');
             if(searchInput) searchInput.value = '';
             
+            // Clear all filters when changing tabs for a clean slate
             window.activeFilters.search = '';
             window.activeFilters.cut = [];
+            window.activeFilters.minRating = 0;
+            window.activeFilters.minPrice = null;
+            window.activeFilters.maxPrice = null;
+
+            // Reset UI of static filters
+            document.querySelectorAll('.rating-pill-button').forEach(btn => btn.classList.remove('rating-active'));
+            const allRatingsBtn = document.querySelector('.rating-pill-button[data-rating="0"]');
+            if(allRatingsBtn) allRatingsBtn.classList.add('rating-active');
+            
+            // Reset Price Slider UI
+            initializePriceSlider();
             
             renderProductTabs(); 
         };
 
+        // --- SCROLL PILL LOGIC ---
 
-        // Generates and renders CUT checkboxes only for products in the active tab
-        const renderFilterCheckboxes = () => {
-            const container = document.getElementById('filter-cut-container');
-            if (!container || !window.activeTab) {
-                if(container) container.innerHTML = `<p class="text-gray-400">Select a category...</p>`;
+        window.scrollPills = (direction) => {
+            const container = document.getElementById('pill-list-container');
+            if (!container) return;
+
+            const scrollDistance = 150; 
+            let newScrollLeft = container.scrollLeft + direction;
+
+            container.scrollTo({
+                left: newScrollLeft,
+                behavior: 'smooth'
+            });
+            
+            setTimeout(checkScrollArrows, 350); 
+        };
+
+        const checkScrollArrows = () => {
+            const container = document.getElementById('pill-list-container');
+            const leftButton = document.getElementById('pill-scroll-left');
+            const rightButton = document.getElementById('pill-scroll-right');
+            
+            if (!container || !leftButton || !rightButton) return;
+
+            const scrollLeft = container.scrollLeft;
+            const scrollWidth = container.scrollWidth;
+            const clientWidth = container.clientWidth;
+
+            if (scrollLeft > 5) { 
+                leftButton.removeAttribute('disabled');
+            } else {
+                leftButton.setAttribute('disabled', 'true');
+            }
+
+            if (scrollLeft + clientWidth < scrollWidth - 5) { 
+                rightButton.removeAttribute('disabled');
+            } else {
+                rightButton.setAttribute('disabled', 'true');
+            }
+        };
+
+        // Renders the horizontal pill/tag cut filters (Option 2)
+        const renderCutPillFilters = () => {
+            const wrapper = document.getElementById('cut-pill-filter-bar-wrapper');
+            const container = document.getElementById('pill-list-inner');
+            const scrollContainer = document.getElementById('pill-list-container');
+
+            if (!wrapper || !container || !window.activeTab || !scrollContainer) {
+                if(wrapper) wrapper.classList.add('hidden');
                 return;
             }
 
@@ -562,44 +816,140 @@
             const uniqueCuts = [...new Set(productsInActiveTab.map(p => p.cut))].sort();
 
             if (uniqueCuts.length === 0) {
-                container.innerHTML = `<p class="text-gray-400">No specific cuts available.</p>`;
+                wrapper.classList.add('hidden');
                 return;
             }
 
-            container.innerHTML = uniqueCuts.map(value => {
+            wrapper.classList.remove('hidden');
+
+            const allPills = uniqueCuts.map(value => {
                 const isChecked = window.activeFilters.cut.includes(value);
+                const activeClass = isChecked ? 'pill-active' : 'bg-gray-100 text-gray-700 hover:bg-gray-200';
+
                 return `
-                    <div class="flex items-center">
-                        <input id="cut-${value.toLowerCase().replace(/\s/g, '-')}" 
-                            type="checkbox" 
-                            value="${value}" 
-                            onchange="handleFilterChange('cut', '${value}', this.checked)"
-                            ${isChecked ? 'checked' : ''}
-                            class="h-4 w-4 text-emerald-600 border-gray-300 rounded focus:ring-emerald-500">
-                        <label for="cut-${value.toLowerCase().replace(/\s/g, '-')}" 
-                            class="ml-3 text-gray-700 cursor-pointer hover:text-emerald-600 transition">
-                            ${value}
-                        </label>
-                    </div>
+                    <button onclick="handlePillClick(this, '${value}')"
+                            class="px-4 py-1.5 rounded-full text-sm font-medium transition flex-shrink-0 ${activeClass}"
+                            data-cut="${value}">
+                        ${value}
+                    </button>
                 `;
             }).join('');
+
+            container.innerHTML = allPills;
             
+            scrollContainer.onscroll = null; 
+            scrollContainer.addEventListener('scroll', checkScrollArrows);
+            scrollContainer.scrollLeft = 0; 
+            checkScrollArrows(); 
             lucide.createIcons(); 
         };
         
-        // Handles filter change (for cuts) and triggers product re-render
-        window.handleFilterChange = (filterName, value, isChecked) => {
-            let filterArray = window.activeFilters[filterName];
+        // Handles the click event for the cut filter pills
+        window.handlePillClick = (element, value) => {
+            let filterArray = window.activeFilters.cut;
 
-            if (isChecked) {
-                if (!filterArray.includes(value)) {
-                    filterArray.push(value);
-                }
+            const isCurrentlyActive = filterArray.includes(value);
+
+            if (isCurrentlyActive) {
+                window.activeFilters.cut = filterArray.filter(item => item !== value);
+                element.classList.remove('pill-active');
+                element.classList.add('bg-gray-100', 'text-gray-700', 'hover:bg-gray-200');
             } else {
-                window.activeFilters[filterName] = filterArray.filter(item => item !== value);
+                window.activeFilters.cut.push(value);
+                element.classList.add('pill-active');
+                element.classList.remove('bg-gray-100', 'text-gray-700', 'hover:bg-gray-200');
             }
             
-            renderProductCatalog();
+            renderProductCatalog(true); // True triggers scroll to product grid
+        };
+
+        // --- PRICE SLIDER LOGIC (UPDATED) ---
+        
+        const initializePriceSlider = () => {
+            const { min, max } = getPriceBounds();
+            
+            const rangeMinEl = document.getElementById('range-min');
+            const rangeMaxEl = document.getElementById('range-max');
+            
+            if (!rangeMinEl || !rangeMaxEl) return;
+
+            // Set global max limits
+            rangeMinEl.min = min;
+            rangeMinEl.max = max;
+            rangeMaxEl.min = min;
+            rangeMaxEl.max = max;
+
+            // Set current values to max/min bounds (initial state: no filter)
+            let currentMin = window.activeFilters.minPrice || min;
+            let currentMax = window.activeFilters.maxPrice || max;
+
+            rangeMinEl.value = currentMin;
+            rangeMaxEl.value = currentMax;
+
+            // Update display and visual range immediately
+            updatePriceSliderUI(currentMin, currentMax, min, max);
+        };
+
+        const updatePriceSliderUI = (minVal, maxVal, totalMin, totalMax) => {
+            const rangeFillEl = document.getElementById('slider-range-fill');
+            const minDisplayEl = document.getElementById('price-min-display');
+            const maxDisplayEl = document.getElementById('price-max-display');
+
+            if (!rangeFillEl || !minDisplayEl || !maxDisplayEl) return;
+
+            minDisplayEl.textContent = formatCurrency(minVal);
+            maxDisplayEl.textContent = formatCurrency(maxVal);
+
+            // Calculate percentage for the colored fill
+            const totalRange = totalMax - totalMin;
+            const minPercent = ((minVal - totalMin) / totalRange) * 100;
+            const maxPercent = ((maxVal - totalMin) / totalRange) * 100;
+
+            rangeFillEl.style.left = `${minPercent}%`;
+            rangeFillEl.style.width = `${maxPercent - minPercent}%`;
+        };
+
+        window.handleSliderChange = (id) => {
+            const rangeMinEl = document.getElementById('range-min');
+            const rangeMaxEl = document.getElementById('range-max');
+            
+            if (!rangeMinEl || !rangeMaxEl) return;
+
+            let minVal = parseFloat(rangeMinEl.value);
+            let maxVal = parseFloat(rangeMaxEl.value);
+
+            // Ensure min slider cannot pass max slider
+            if (minVal > maxVal) {
+                if (id === 'range-min') {
+                    minVal = maxVal;
+                    rangeMinEl.value = maxVal;
+                } else {
+                    maxVal = minVal;
+                    rangeMaxEl.value = minVal;
+                }
+            }
+            
+            // Get original bounds for UI update calculation
+            const { min: totalMin, max: totalMax } = getPriceBounds();
+
+            // Apply filter
+            window.activeFilters.minPrice = minVal;
+            window.activeFilters.maxPrice = maxVal;
+
+            updatePriceSliderUI(minVal, maxVal, totalMin, totalMax);
+            renderProductCatalog(true); // True triggers scroll to product grid
+        };
+
+        // NEW: Handles the minimum rating change
+        window.handleRatingChange = (minRating) => {
+            window.activeFilters.minRating = minRating;
+            
+            // Update UI for active button
+            document.querySelectorAll('.rating-pill-button').forEach(btn => btn.classList.remove('rating-active'));
+            const activeBtn = document.querySelector(`.rating-pill-button[data-rating="${minRating}"]`);
+            if(activeBtn) activeBtn.classList.add('rating-active');
+            
+            renderProductCatalog(true); // True triggers scroll to product grid
         };
 
 
@@ -618,10 +968,9 @@
                 starsHtml += `<i data-lucide="star" class="${starClass}"></i>`;
             }
             if (halfStar) {
-                starsHtml += `<span class="relative"><i data-lucide="star" class="${starClass}"></i></span>`;
-            }
-            for (let i = 0; i < emptyStars; i++) {
-                starsHtml += `<i data-lucide="star" class="w-4 h-4 text-gray-300"></i>`;
+                starsHtml += `<span class="relative"><i data-lucide="star-half" class="${starClass}"></i></span>`;
+            } else if (fullStars < 5) {
+                starsHtml += `<span class="relative"><i data-lucide="star" class="w-4 h-4 text-gray-300"></i></span>`.repeat(emptyStars);
             }
 
             return `
@@ -686,6 +1035,37 @@
             `;
         };
         
+        // NEW: Function to handle the micro-interaction and add to cart from the detail modal
+        const addToCartWithAnimation = (productId, quantity, buttonElement) => {
+            // 1. Animate button
+            buttonElement.textContent = "Added ✓";
+            buttonElement.classList.add('button-clicked');
+            buttonElement.disabled = true;
+
+            // 2. Animate cart icon (item "flies" to cart)
+            const cartButtonIcon = document.querySelector('#cart-button i');
+            if (cartButtonIcon) {
+                cartButtonIcon.classList.add('cart-highlight');
+            }
+
+            // 3. Perform the actual cart update
+            updateCart(productId, quantity, true); 
+            
+            // 4. Revert state after delay
+            setTimeout(() => {
+                buttonElement.textContent = "Add to Cart";
+                buttonElement.classList.remove('button-clicked');
+                buttonElement.disabled = false;
+                
+                if (cartButtonIcon) {
+                    cartButtonIcon.classList.remove('cart-highlight');
+                }
+                
+                // Close the modal after the animation completes
+                closeModal('product-detail-modal');
+            }, 1000); 
+        };
+
         // Render the Product Detail Modal
         window.renderProductDetailModal = (productId) => {
             const product = window.products.find(p => p.id === productId);
@@ -722,13 +1102,18 @@
             const plusBtn = document.getElementById('detail-plus-btn');
             if (plusBtn) plusBtn.onclick = () => updateDetailQuantity(1);
 
-            // Setup Add to Cart button 
+            // Setup Add to Cart button (NOW CALLS THE ANIMATION FUNCTION)
             const addToCartBtn = document.getElementById('detail-add-to-cart-btn');
             if (addToCartBtn) {
-                addToCartBtn.onclick = () => {
+                // Ensure the button is reset before applying new click handler
+                addToCartBtn.textContent = "Add to Cart";
+                addToCartBtn.classList.remove('button-clicked');
+                addToCartBtn.disabled = false;
+                
+                addToCartBtn.onclick = (e) => {
                     const quantity = parseInt(qtyInput.value, 10);
-                    updateCart(productId, quantity, true); 
-                    closeModal('product-detail-modal');
+                    // Pass the quantity and the button element itself
+                    addToCartWithAnimation(productId, quantity, e.currentTarget); 
                 };
             }
 
@@ -738,29 +1123,46 @@
         };
 
         // Render the main product catalog grid with sub-sections
-        window.renderProductCatalog = () => {
+        window.renderProductCatalog = (shouldScroll = false) => {
             const container = document.getElementById('product-grid');
             const searchInputEl = document.getElementById('search-input');
             const noProductsEl = document.getElementById('no-products');
+            const scrollWrapper = document.getElementById('product-grid-wrapper');
 
-            if (!container || !searchInputEl || !noProductsEl || !window.activeTab) {
+            if (!container || !searchInputEl || !noProductsEl || !scrollWrapper || !window.activeTab) {
                 return; 
             }
             
+            const { search, cut, minRating, minPrice, maxPrice } = window.activeFilters;
             const searchInput = searchInputEl.value.toLowerCase();
-            const activeCuts = window.activeFilters.cut;
 
             // 1. Filter products based on active tab, search, and selected cuts
             let filteredProducts = window.products.filter(p => p.type === window.activeTab);
 
             filteredProducts = filteredProducts.filter(p => {
+                // Search Filter
                 const searchMatch = (
                     p.name.toLowerCase().includes(searchInput) ||
                     p.sku.toLowerCase().includes(searchInput) ||
                     p.brand.toLowerCase().includes(searchInput)
                 );
-                const cutMatch = activeCuts.length === 0 || activeCuts.includes(p.cut);
-                return searchMatch && cutMatch;
+                
+                // Cut Filter
+                const cutMatch = cut.length === 0 || cut.includes(p.cut);
+                
+                // Rating Filter
+                const ratingMatch = p.rating >= minRating;
+                
+                // Price Filter
+                let priceMatch = true;
+                if (minPrice !== null && p.unitPrice < minPrice) {
+                    priceMatch = false;
+                }
+                if (maxPrice !== null && p.unitPrice > maxPrice) {
+                    priceMatch = false;
+                }
+
+                return searchMatch && cutMatch && ratingMatch && priceMatch;
             }).sort((a, b) => {
                 // Secondary sort: Sort by cut name, then product name for display order
                 if (a.cut < b.cut) return -1;
@@ -798,6 +1200,11 @@
 
             // Show/hide no products message
             noProductsEl.classList.toggle('hidden', filteredProducts.length > 0);
+
+            // NEW FIX: Smooth scroll the product grid wrapper into view if a filter was just applied
+            if (shouldScroll) {
+                 scrollWrapper.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
 
             lucide.createIcons();
         };
@@ -1150,7 +1557,8 @@
 
             const searchInput = document.getElementById('search-input');
             if (searchInput) {
-                searchInput.addEventListener('input', renderProductCatalog);
+                // Pass true to trigger scroll on search input changes
+                searchInput.addEventListener('input', () => renderProductCatalog(true));
             }
 
             const navSidebar = document.getElementById('left-nav-sidebar');
